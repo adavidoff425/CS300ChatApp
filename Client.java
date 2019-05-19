@@ -21,20 +21,20 @@ public class Client {
 
     public boolean connect(){
         try{
-            this.socket = new Socket(server_address, port);
+            this.clientSocket = new Socket(server_address, port);
         }
         catch(Exception e){
-            System.out.println("Connection error" + e);
+            this.gui.append("Connection error" + e + "\n");
             return false;
         }
-        System.out.println("Connected to " + this.socket.getInetAddress() + ":" + this.socket.getPort());
+        this.gui.append("Connected to " + this.socket.getInetAddress() + ":" + this.socket.getPort() + "\n");
 
         try{
             this.sin = new DataInputStream(this.socket.getInputStream());
             this.sout = new DateOutputStream(socket.getOutputStream());
         }
         catch(IOException e){
-            System.out.println("Error creating I/O streams" + e);
+            this.gui.append("Error creating I/O streams" + e + "\n");
             return false;
         }
     }
