@@ -4,7 +4,7 @@ import java.net.Socket;
 
 public class Client {
     private DataInputStream sin;
-    private DateOutputStream sout;
+    private DataOutputStream sout;
     private Socket clientSocket;
     private boolean connected;
     private ClientGUI gui;
@@ -12,10 +12,9 @@ public class Client {
     private String server_address;
     private int port;
 
-    public Client(String server_address, int port, String username, ClientGUI gui){
+    public Client(String server, int port, ClientGUI gui){
         this.server_address = server;
         this.port = port;
-        this.username = username;
         this.gui = gui;
     }
 
@@ -27,15 +26,16 @@ public class Client {
             this.gui.append("Connection error" + e + "\n");
             return false;
         }
-        this.gui.append("Connected to " + this.socket.getInetAddress() + ":" + this.socket.getPort() + "\n");
+        this.gui.append("Connected to " + this.clientSocket.getInetAddress() + ":" + this.clientSocket.getPort() + "\n");
 
         try{
-            this.sin = new DataInputStream(this.socket.getInputStream());
-            this.sout = new DateOutputStream(socket.getOutputStream());
+            this.sin = new DataInputStream(this.clientSocket.getInputStream());
+            this.sout = new DataOutputStream(this.clientSocket.getOutputStream());
         }
         catch(IOException e){
             this.gui.append("Error creating I/O streams" + e + "\n");
             return false;
         }
+        return true;
     }
 }
