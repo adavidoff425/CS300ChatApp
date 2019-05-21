@@ -6,7 +6,7 @@ public class User{
     public User(String name, String pw){
         this.username = name;
         this.pw = pw;
-        this.chatHistory = new ArrayList<String>();
+        this.chatHistory = new ArrayList<>();
         this.loggedIn = false;
     }
     

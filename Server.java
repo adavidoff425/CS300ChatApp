@@ -67,7 +67,7 @@ class ClientThread extends Thread{
         this.connected = true;
         while(connected){
             try{
-                String username = this.sin.readLine();
+                String username = this.sin.readUTF();
                 if(username == null)
                     continue;
                 for(User u : this.users){
@@ -79,7 +79,7 @@ class ClientThread extends Thread{
             }
             catch(IOException e){"Error reading username from client"};
             try{
-                String password = this.sin.readLine();
+                String password = this.sin.readUTF();
                 this.user = addUser(username, password);
             }
             catch(Exception e){
