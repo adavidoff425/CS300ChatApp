@@ -1,8 +1,12 @@
 import java.io.*;
 import java.util.*;
 import java.net.Socket;
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.*;
+import javax.swing.event.*;
 
-public class Client {
+public class Client extends JFrame implements ActionListener{
     private DataInputStream sin;
     private DataOutputStream sout;
     private Socket clientSocket;
@@ -10,12 +14,14 @@ public class Client {
     private ClientGUI gui;
     private String username;
     private String server_address;
+    private Scanner scan;
     private int port;
 
     public Client(String server, int port, ClientGUI gui){
         this.server_address = server;
         this.port = port;
         this.gui = gui;
+        this.scan = new Scanner(System.in);
     }
 
     public boolean connect(){
@@ -37,5 +43,20 @@ public class Client {
             return false;
         }
         return true;
+    }
+    
+    public boolean register(String name, String password){
+        try{
+            this.sout.writeChars(name);            
+            this.sout.flush();
+            boolean available = this.sin.readBoolean()
+        }
+        catch(Exception e)
+            e.printStackTrace;
+        if(!available){
+            this.gui.append("Username already taken");
+            return false;
+        }
+        
     }
 }
