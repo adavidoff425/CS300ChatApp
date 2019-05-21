@@ -37,7 +37,7 @@ class ClientGUI extends Client{
     }
     
     public void append(String string){
-        this.msg = new JTextArea(string);
+        this.msg.append(string);
     }
     
     public void actionPerformed(ActionEvent e){
@@ -71,17 +71,18 @@ class ClientGUI extends Client{
     }
     
     public void registerUser(){
+        String name, pw;
         try{
-            this.name = this.username.getText();
-            this.pw = this.password.getText();
+            name = this.username.getText();
+            pw = this.password.getText();
         }
         catch(Exception e)
             append("Error retrieving entered text");
-        if(!register(this.name, this.pw))
-            registerScreen();
+        if(!register(name, pw))
+            registerScreen(); // How to exit one screen, refresh other??
     }
     
     public static void main(String args){
-        new ClientGUI("localhost", 1300);
+        super("localhost", 1300, this);
     }
 }

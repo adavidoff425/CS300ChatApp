@@ -49,14 +49,17 @@ public class Client extends JFrame implements ActionListener{
         try{
             this.sout.writeChars(name);            
             this.sout.flush();
-            boolean available = this.sin.readBoolean()
-        }
-        catch(Exception e)
-            e.printStackTrace;
+            boolean available = this.sin.readBoolean();
+            
         if(!available){
             this.gui.append("Username already taken");
             return false;
         }
         
+            this.sout.writeChars(password);
+            this.clientSocket.close();
+        }
+        catch(Exception e)
+            e.printStackTrace;
     }
 }
