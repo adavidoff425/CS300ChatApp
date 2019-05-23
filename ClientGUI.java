@@ -13,7 +13,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
     private JTextField username, password;
     private JLabel text;
     private JList<String> onlineUsers;
-    private JScrollPane users;
+    private JScrollPane users, history;
     private JPanel buttonPanel, registerPanel, loginPanel, runningPanel, chatPanel;
     private String name, pw;
 
@@ -47,23 +47,43 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
 
         this.layout.setHorizontalGroup(
                 this.layout.createSequentialGroup()
-                    .addComponent(buttonPanel)
+                    .addComponent(buttonPanel)    
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING))
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING))
+        );
+        
+        this.layout.setHorizontalGroup(
+            this.layout.createSequentialLayout()
                     .addComponent(registerPanel)
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING))
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING))
+                        .addComponent(loginPanel)
+        );
+
+        this.layout.setHorizontalGroup(
+            this.layout.createSequentialLayout()
                     .addComponent(runningPanel)
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING))
+                        .addComponent(users)
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING))
+                        .addComponent(chatPanel)
+        );
+        
+        this.layout.setVerticalGroup(
+            this.layout.createSequentialGroup()
+                .addComponent(buttonPanel)
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE))
+                    .addComponent(registerPanel)
+                    .addComponent(loginPanel)
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.CENTER))
+                    .addComponent(runningPanel)
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING))
                     .addComponent(users)
                     .addComponent(chatPanel)
-                    .addComponent(loginPanel)
         );
-this.layout.setVerticalGroup(
-                this.layout.createSequentialGroup()
-                    .addComponent(buttonPanel)
-                    .addComponent(registerPanel)
-                    .addComponent(runningPanel)
-                    .addComponent(users)
-                    .addComponent(chatPanel)
-                    .addComponent(loginPanel)
-        );
+        
         this.setSize(400, 250);
+        this.setHonorsVisibility(true);
         this.setVisible(true);
     }
     
@@ -73,17 +93,35 @@ this.layout.setVerticalGroup(
     
     public void actionPerformed(ActionEvent e){
         Object source = e.getSource();
-    /*    if(source == this.register)
-        {}
-        else if(source == this.login)
+        if(source == this.register){
+            this.registerPanel.setVisible(true);
+            this.buttonPanel.setVisible(false);
+        }
+        
+        else if(source == this.login){
+            this.loginPanel.setVisible(true);
+            this.buttonPanel.setVisible(false);
             login();
-        else if(source == this.logout)
+        }
+
+        else if(source == this.logout){
             logout();
-        else if(source == this.displayUsers)
+            this.replace(this.runningPanel, this.buttonPanel);
+            this.chatPanel.setVisible(false);
+            this.users.setVisible(false);
+            this.history.setVisible(false);
+            this.buttonPanel.setVisible(true);
+        }
+
+        else if(source == this.displayUsers){
+            this.users.setVisible(true);
             userList();
-        else if(source == this.enter)
+        }
+
+        else if(source == this.enter){
             registerUser();
-     */
+        }
+
     }
     
     public void registerScreen(){
@@ -97,6 +135,7 @@ this.layout.setVerticalGroup(
         this.registerPanel.add(this.username);
         this.registerPanel.add(this.password);
         this.registerPanel.add(this.enter);
+        this.registerPanel.setVisible(false);
     }
 
     public void loginScreen(){
@@ -104,6 +143,7 @@ this.layout.setVerticalGroup(
         this.loginPanel.add(this.username);
         this.loginPanel.add(this.password);
         this.loginPanel.add(this.login);
+        this.loginPanel.setVisible(false);
     }
 
     public void runningScreen() {
@@ -115,6 +155,7 @@ this.layout.setVerticalGroup(
         this.displayUsers.addActionListener(this);
         this.runningPanel.add(this.logout);
         this.runningPanel.add(this.displayUsers);
+        this.runningPanel.setVisible(false);
     }
 
     public void chatScreen(){
