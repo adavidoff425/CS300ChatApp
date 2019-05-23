@@ -8,12 +8,10 @@ public class Server{
     private static ArrayList<ClientThread> clients = new ArrayList<>();
     private ServerSocket socket;
     private boolean running;
-    private ServerGUI gui;
     private int port;
     
-    public Server(int port, ServerGUI gui){
+    public Server(int port){
         this.port = port;
-        this.gui = gui;
     }
     
     public void connect(){
@@ -36,16 +34,18 @@ public class Server{
                     thread.clientSocket.close();
                 }
                 catch(Exception e){
-                    this.gui.append("Error disconnecting clients from server");
+                    System.out.println("Error disconnecting clients from server");
                 }
             }
             
         }
     }
-    
+
+    // Adds user object to list of objects
     public User addUser(String name, String pw){
         User newUser = new User(name, pw);
         this.users.add(newUser);
+        // ADD WRITE TO FILE FOR UN, PW, AND CHAT HISTORY
         newUser.login();
         return newUser;
     }
@@ -55,6 +55,7 @@ class ClientThread extends Thread{
     private Socket clientSocket;
     private DataInputStream sin;
     private DataOutputStream sout;
+    private ClientGUI gui;
     private boolean connected;
     
     public ClientThread(Socket socket){
@@ -72,12 +73,12 @@ class ClientThread extends Thread{
                     continue;
                 for(User u : this.users){
                     if(u.find(username)){
-                        this.gui.append(username + " already used. Please enter another username");
-                        continue;
+                        this.sout.writeUTF(username + " already used. Please enter another username");
+                        this.sout.flush();
                     }
                 }
             }
-            catch(IOException e){"Error reading username from client"};
+            catch(IOException e){"Error reading username from client"}
             try{
                 String password = this.sin.readUTF();
                 this.user = addUser(username, password);

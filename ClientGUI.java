@@ -1,37 +1,68 @@
-class ClientGUI extends Client{
-    private JButton register, login, logout, displayUsers, enter, send, loginAttempt;
+import java.io.*;
+import java.util.*;
+import java.net.Socket;
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.*;
+import javax.swing.event.*;
+
+class ClientGUI extends Client implements ListSelectionListener, ActionListener{
+    private GroupLayout layout;
+    private JButton register, login, logout, displayUsers, displayHistory, enter, send, exit, clear;
     private JTextArea chat, msg;
     private JTextField username, password;
     private JLabel text;
     private JList<String> onlineUsers;
-    private JPanel buttonPanel;:
-    private String server_address, name, pw;
-    private int port;
-    
+    private JScrollPane users;
+    private JPanel buttonPanel, registerPanel, loginPanel, runningPanel, chatPanel;
+    private String name, pw;
+
     public ClientGUI(String host, int port){
-        super("Chat Application");
-        this.server_address = host;
-        this.port = port;
+        super(host, port);
+        super.gui = this;
+        this.buttonPanel = new JPanel();
+        this.layout = new GroupLayout(getContentPane());
+        getContentPane().setLayout(layout);
+        this.layout.setAutoCreateGaps(true);
+        this.layout.setAutoCreateContainerGaps(true);
         
         try{
+            // Initial panel
             this.register = new JButton("New User");
             this.login = new JButton("Existing User");
-            this.logout = new JButton("Logout");
-            this.displayUsers = new JButton("Display online users");
-            this.buttonPanel = new JPanel();
             this.register.addActionListener(this);
             this.login.addActionListener(this);
-            this.logout.addActionListener(this);
-            this.logout.setEnabled(false);
-            this.displayUsers.addActionListener(this);
-            this.displayUsers.setEnabled(false);
             this.buttonPanel.add(this.register);
-            this.buttonPanel.add(this.login);   
-            this.add(buttonPanel);
+            this.buttonPanel.add(this.login);
+
+            registerScreen();
+            loginScreen();
+            runningScreen();
+            chatScreen();
+            usersScreen();
         }
         catch(Exception e){
             e.printStackTrace();
         }
+
+        this.layout.setHorizontalGroup(
+                this.layout.createSequentialGroup()
+                    .addComponent(buttonPanel)
+                    .addComponent(registerPanel)
+                    .addComponent(runningPanel)
+                    .addComponent(users)
+                    .addComponent(chatPanel)
+                    .addComponent(loginPanel)
+        );
+this.layout.setVerticalGroup(
+                this.layout.createSequentialGroup()
+                    .addComponent(buttonPanel)
+                    .addComponent(registerPanel)
+                    .addComponent(runningPanel)
+                    .addComponent(users)
+                    .addComponent(chatPanel)
+                    .addComponent(loginPanel)
+        );
         this.setSize(400, 250);
         this.setVisible(true);
     }
@@ -42,8 +73,8 @@ class ClientGUI extends Client{
     
     public void actionPerformed(ActionEvent e){
         Object source = e.getSource();
-        if(source == this.register)
-            registerScreen(); 
+    /*    if(source == this.register)
+        {}
         else if(source == this.login)
             login();
         else if(source == this.logout)
@@ -52,37 +83,81 @@ class ClientGUI extends Client{
             userList();
         else if(source == this.enter)
             registerUser();
-        
+     */
     }
     
     public void registerScreen(){
-        this.login.setEnabled(false);
-        this.register.setEnabled(false);
+        this.registerPanel = new JPanel();
         this.username = new JTextField("Enter Username");
         this.password = new JTextField("Enter Password");
         this.username.setEditable(true);
         this.password.setEditable(true);
         this.enter = new JButton("Enter");
         this.enter.addActionListener(this);
-        this.buttonPanel.add(this.username);
-        this.buttonPanel.add(this.password);
-        this.buttonPanel.add(this.enter);
-        this.setvisible(true);
+        this.registerPanel.add(this.username);
+        this.registerPanel.add(this.password);
+        this.registerPanel.add(this.enter);
     }
-    
+
+    public void loginScreen(){
+        this.loginPanel = new JPanel();
+        this.loginPanel.add(this.username);
+        this.loginPanel.add(this.password);
+        this.loginPanel.add(this.login);
+    }
+
+    public void runningScreen() {
+        this.runningPanel = new JPanel();
+        this.logout = new JButton("Logout");
+        this.displayUsers = new JButton("Display Online Users");
+        this.displayHistory = new JButton("Chat History");
+        this.logout.addActionListener(this);
+        this.displayUsers.addActionListener(this);
+        this.runningPanel.add(this.logout);
+        this.runningPanel.add(this.displayUsers);
+    }
+
+    public void chatScreen(){
+        this.chat = new JTextArea(55, 55);
+        this.msg = new JTextArea("Enter Message", 30, 30);
+        this.send = new JButton("Send");
+        this.clear = new JButton("Clear");
+        this.exit = new JButton("End Chat");
+        this.send.addActionListener(this);
+        this.clear.addActionListener(this);
+        this.exit.addActionListener(this);
+        this.chat.setEditable(false);
+        this.msg.setEditable(true);
+        this.chat.setLineWrap(true);
+        this.msg.setLineWrap(true);
+        this.chatPanel = new JPanel();
+        this.chatPanel.add(this.msg);
+        this.chatPanel.add(this.chat);
+        this.chatPanel.add(this.send);
+        this.chatPanel.add(this.clear);
+        this.chatPanel.add(this.exit);
+    }
+
+    public void usersScreen(){
+        this.onlineUsers = new JList<String>();
+        this.onlineUsers.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        this.onlineUsers.setLayoutOrientation(JList.VERTICAL);
+        this.onlineUsers.setVisibleRowCount(10);
+        this.users = new JScrollPane(this.onlineUsers);
+        this.onlineUsers.addListSelectionListener(this);
+    }
+
     public void registerUser(){
-        String name, pw;
+        String name = null, pw = null;
         try{
             name = this.username.getText();
             pw = this.password.getText();
         }
         catch(Exception e)
-            append("Error retrieving entered text");
+            {append("Error retrieving entered text");}
         if(!register(name, pw))
-            registerScreen(); // How to exit one screen, refresh other??
+            registerScreen();
     }
-    
-    public static void main(String args){
-        super("localhost", 1300, this);
-    }
+
+    public void valueChanged(ListSelectionEvent event){}
 }

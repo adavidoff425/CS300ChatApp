@@ -6,21 +6,21 @@ import java.awt.event.*;
 import javax.swing.*;
 import javax.swing.event.*;
 
-public class Client extends JFrame implements ActionListener{
-    private DataInputStream sin;
-    private DataOutputStream sout;
-    private Socket clientSocket;
-    private boolean connected;
-    private ClientGUI gui;
-    private String username;
-    private String server_address;
-    private Scanner scan;
-    private int port;
+public class Client extends JFrame{
+    protected DataInputStream sin;
+    protected DataOutputStream sout;
+    protected Socket clientSocket;
+    protected boolean connected;
+    protected ClientGUI gui;
+    protected String username;
+    protected String server_address;
+    protected Scanner scan;
+    protected int port;
 
-    public Client(String server, int port, ClientGUI gui){
+    public Client(String server, int port){
+        super("Chat Application");
         this.server_address = server;
         this.port = port;
-        this.gui = gui;
         this.scan = new Scanner(System.in);
     }
 
@@ -59,7 +59,9 @@ public class Client extends JFrame implements ActionListener{
             this.sout.writeChars(password);
             this.clientSocket.close();
         }
-        catch(Exception e)
-            e.printStackTrace;
+        catch(Exception e) {
+            e.printStackTrace();
+        }
+        return true;
     }
 }
