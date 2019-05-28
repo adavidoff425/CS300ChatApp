@@ -15,10 +15,17 @@ public class Server{
     }
     
     public void connect(){
-        this.socket = new ServerSocket(this.port);
+        try {
+            this.socket = new ServerSocket(this.port);
+        }
+        catch(IOException e){}
+        Socket server = null;
         this.running = true;
         while(running){
-            Socket server = serverSocket.accept();
+            try {
+                server = this.socket.accept();
+            }
+            catch(IOException e){}
             if(!running)
                 break;
             ClientThread newClient = new ClientThread(server);
@@ -39,6 +46,7 @@ public class Server{
             }
             
         }
+        catch(Exception e){}
     }
 
     // Adds user object to list of objects
@@ -46,11 +54,11 @@ public class Server{
         User newUser = new User(name, pw);
         this.users.add(newUser);
         // ADD WRITE TO FILE FOR UN, PW, AND CHAT HISTORY
-        newUser.login();
+        newUser.login(name, pw);
         return newUser;
     }
     
-class ClientThread extends Thread{
+private class ClientThread extends Thread{
     private User user;
     private Socket clientSocket;
     private DataInputStream sin;
@@ -60,25 +68,32 @@ class ClientThread extends Thread{
     
     public ClientThread(Socket socket){
         this.clientSocket = socket;
-        this.sin = new DataInputStream(this.clientSocket.getInputStream());
-        this.sout = new DataOutputStream(this.clientSocket.getOutputStream());
+        try {
+            this.sin = new DataInputStream(this.clientSocket.getInputStream());
+            this.sout = new DataOutputStream(this.clientSocket.getOutputStream());
+        }
+        catch(IOException e){this.gui.append("Error connecting I/O");}
     }
     
     public void run(){
         this.connected = true;
+        String username = "";
+
         while(connected){
             try{
-                String username = this.sin.readUTF();
+                username = this.sin.readUTF();
                 if(username == null)
                     continue;
-                for(User u : this.users){
+                for(User u : users){
                     if(u.find(username)){
                         this.sout.writeUTF(username + " already used. Please enter another username");
                         this.sout.flush();
                     }
                 }
             }
-            catch(IOException e){"Error reading username from client"}
+            catch(IOException e){
+                this.gui.append("Error reading username from client");
+            }
             try{
                 String password = this.sin.readUTF();
                 this.user = addUser(username, password);

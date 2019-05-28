@@ -1,3 +1,6 @@
+import java.io.*;
+import java.util.*;
+
 public class User{
     private String username, password;
     private boolean loggedIn;
@@ -5,7 +8,7 @@ public class User{
     
     public User(String name, String pw){
         this.username = name;
-        this.pw = pw;
+        this.password = pw;
         this.chatHistory = new ArrayList<>();
         this.loggedIn = false;
     }

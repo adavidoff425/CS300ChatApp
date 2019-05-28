@@ -8,10 +8,9 @@ import javax.swing.event.*;
 
 class ClientGUI extends Client implements ListSelectionListener, ActionListener{
     private GroupLayout layout;
-    private JButton register, login, logout, displayUsers, displayHistory, enter, send, exit, clear;
-    private JTextArea chat, msg;
-    private JTextField username, password;
-    private JLabel text;
+    private JButton register, login, login2, logout, displayUsers, displayHistory, enter, enter2, send, exit, clear;
+    private JTextArea chat, msg, text;
+    private JTextField username, password, username2, password2;
     private JList<String> onlineUsers;
     private JScrollPane users, history;
     private JPanel buttonPanel, registerPanel, loginPanel, runningPanel, chatPanel;
@@ -20,6 +19,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
     public ClientGUI(String host, int port){
         super(host, port);
         super.gui = this;
+
         this.buttonPanel = new JPanel();
         this.layout = new GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -28,6 +28,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         
         try{
             // Initial panel
+            this.text = new JTextArea("");
             this.register = new JButton("New User");
             this.login = new JButton("Existing User");
             this.register.addActionListener(this);
@@ -45,68 +46,67 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
             e.printStackTrace();
         }
 
-        this.layout.setHorizontalGroup(
-                this.layout.createSequentialGroup()
-                    .addComponent(buttonPanel)    
+        this.layout.setHorizontalGroup(layout.createSequentialGroup()
+                    .addGroup(layout.createParallelGroup()
+                        .addComponent(buttonPanel)
+                        .addComponent(text))
                     .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING))
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addComponent(registerPanel))
                     .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING))
-        );
-        
-        this.layout.setHorizontalGroup(
-            this.layout.createSequentialLayout()
-                    .addComponent(registerPanel)
-                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING))
-                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING))
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                         .addComponent(loginPanel)
-        );
-
-        this.layout.setHorizontalGroup(
-            this.layout.createSequentialLayout()
-                    .addComponent(runningPanel)
-                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING))
-                        .addComponent(users)
-                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING))
-                        .addComponent(chatPanel)
+                        .addComponent(runningPanel))
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addComponent(users))
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addComponent(chatPanel))
+                       // .addComponent(history))
         );
         
-        this.layout.setVerticalGroup(
-            this.layout.createSequentialGroup()
-                .addComponent(buttonPanel)
-                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE))
-                    .addComponent(registerPanel)
-                    .addComponent(loginPanel)
-                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.CENTER))
-                    .addComponent(runningPanel)
-                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING))
-                    .addComponent(users)
-                    .addComponent(chatPanel)
+        this.layout.setVerticalGroup(layout.createSequentialGroup()
+                .addGroup(layout.createParallelGroup()
+                    .addComponent(buttonPanel)
+                    .addComponent(text))
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                        .addComponent(registerPanel)
+                        .addComponent(loginPanel))
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.CENTER)
+                        .addComponent(runningPanel))
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addComponent(users)
+                        .addComponent(chatPanel))
+                      //  .addComponent(history))
         );
         
         this.setSize(400, 250);
-        this.setHonorsVisibility(true);
+        this.layout.setHonorsVisibility(true);
+        connect();
         this.setVisible(true);
     }
     
     public void append(String string){
-        this.msg.append(string);
+        this.text.append(string);
     }
     
     public void actionPerformed(ActionEvent e){
         Object source = e.getSource();
         if(source == this.register){
-            this.registerPanel.setVisible(true);
             this.buttonPanel.setVisible(false);
+            this.registerPanel.setVisible(true);
+            this.layout.replace(this.buttonPanel, this.registerPanel);
         }
         
         else if(source == this.login){
             this.loginPanel.setVisible(true);
             this.buttonPanel.setVisible(false);
-            login();
+            this.layout.replace(this.buttonPanel, this.loginPanel);
+            //login();
         }
 
         else if(source == this.logout){
-            logout();
-            this.replace(this.runningPanel, this.buttonPanel);
+            //logout();
+            this.layout.replace(this.runningPanel, this.buttonPanel);
             this.chatPanel.setVisible(false);
             this.users.setVisible(false);
             this.history.setVisible(false);
@@ -115,7 +115,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
 
         else if(source == this.displayUsers){
             this.users.setVisible(true);
-            userList();
+           // userList();
         }
 
         else if(source == this.enter){
@@ -128,6 +128,8 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         this.registerPanel = new JPanel();
         this.username = new JTextField("Enter Username");
         this.password = new JTextField("Enter Password");
+        this.username.addActionListener(this);
+        this.password.addActionListener(this);
         this.username.setEditable(true);
         this.password.setEditable(true);
         this.enter = new JButton("Enter");
@@ -140,9 +142,17 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
 
     public void loginScreen(){
         this.loginPanel = new JPanel();
-        this.loginPanel.add(this.username);
-        this.loginPanel.add(this.password);
-        this.loginPanel.add(this.login);
+        this.username2 = new JTextField("Enter Username");
+        this.password2 = new JTextField("Enter Password");
+        this.login2 = new JButton("Login");
+        this.username2.addActionListener(this);
+        this.password2.addActionListener(this);
+        this.username2.setEditable(true);
+        this.password2.setEditable(true);
+        this.login2.addActionListener(this);
+        this.loginPanel.add(this.username2);
+        this.loginPanel.add(this.password2);
+        this.loginPanel.add(this.login2);
         this.loginPanel.setVisible(false);
     }
 
@@ -159,8 +169,8 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
     }
 
     public void chatScreen(){
-        this.chat = new JTextArea(55, 55);
-        this.msg = new JTextArea("Enter Message", 30, 30);
+        this.chat = new JTextArea(20, 20);
+        this.msg = new JTextArea("Enter Message", 20, 20);
         this.send = new JButton("Send");
         this.clear = new JButton("Clear");
         this.exit = new JButton("End Chat");
@@ -177,6 +187,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         this.chatPanel.add(this.send);
         this.chatPanel.add(this.clear);
         this.chatPanel.add(this.exit);
+        this.chatPanel.setVisible(false);
     }
 
     public void usersScreen(){
@@ -186,6 +197,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         this.onlineUsers.setVisibleRowCount(10);
         this.users = new JScrollPane(this.onlineUsers);
         this.onlineUsers.addListSelectionListener(this);
+        this.users.setVisible(false);
     }
 
     public void registerUser(){
