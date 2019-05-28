@@ -8,7 +8,7 @@ import javax.swing.event.*;
 
 class ClientGUI extends Client implements ListSelectionListener, ActionListener{
     private GroupLayout layout;
-    private JButton register, login, login2, logout, displayUsers, displayHistory, enter, enter2, send, exit, clear;
+    private JButton register, login, login2, logout, displayUsers, displayHistory, enter, send, exit, clear;
     private JTextArea chat, msg, text;
     private JTextField username, password, username2, password2;
     private JList<String> onlineUsers;
@@ -48,8 +48,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
 
         this.layout.setHorizontalGroup(layout.createSequentialGroup()
                     .addGroup(layout.createParallelGroup()
-                        .addComponent(buttonPanel)
-                        .addComponent(text))
+                        .addComponent(buttonPanel))
                     .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING))
                     .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                         .addComponent(registerPanel))
@@ -61,13 +60,14 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
                         .addComponent(users))
                     .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                         .addComponent(chatPanel))
-                       // .addComponent(history))
+                        .addComponent(history))
+                    .addGroup(layout.createHorizontalGroup(GroupLayout.Alignment.BASELINE)
+                        .addComponent(text))
         );
         
         this.layout.setVerticalGroup(layout.createSequentialGroup()
                 .addGroup(layout.createParallelGroup()
-                    .addComponent(buttonPanel)
-                    .addComponent(text))
+                    .addComponent(buttonPanel))
                     .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                         .addComponent(registerPanel)
                         .addComponent(loginPanel))
@@ -76,7 +76,9 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
                     .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                         .addComponent(users)
                         .addComponent(chatPanel))
-                      //  .addComponent(history))
+                        .addComponent(history))
+                    .addGroup(layout.createVerticalGroup(GroupLayout.Alignment.BASELINE)
+                        .addComponent(text))
         );
         
         this.setSize(400, 250);
