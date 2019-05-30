@@ -12,29 +12,29 @@ public class Server{
     private File userfile;
     private FileWriter writer;
     
-    public Server(int port){
+    public Server(int port) throws ClassNotFoundException{
         this.port = port;
         this.users = null;
         this.userfile = null;
         connect();
     }
     
-    public void connect(){
+    public void connect() throws ClassNotFoundException{
         try {
             this.socket = new ServerSocket(this.port);
         }
-        catch(IOException e){}
+        catch(IOException e){System.out.println("Couldn't connect to socket\n");}
         Socket server = null;
         this.running = true;
         while(running){
             try {
                 server = this.socket.accept();
             }
-            catch(IOException e){}
+            catch(IOException e){System.out.println("Error connecting socket\n");}
             if(!running)
                 break;
             ClientThread newClient = new ClientThread(server);
-            newClient.run();
+            System.out.println("Running client thread");
         }
         // Server no longer running
         try{
@@ -73,13 +73,14 @@ private class ClientThread extends Thread{
     private ClientGUI gui;
     private boolean connected;
     
-    public ClientThread(Socket socket){
+    public ClientThread(Socket socket) throws ClassNotFoundException{
         this.clientSocket = socket;
         try {
-            this.sin = new DataInputStream(this.clientSocket.getInputStream());
-            this.sout = new DataOutputStream(this.clientSocket.getOutputStream());
+            this.sin = new DataInputStream(socket.getInputStream());
+            this.sout = new DataOutputStream(socket.getOutputStream());
         }
-        catch(IOException e){this.gui.append("Error connecting I/O\n");}
+        catch(IOException e){System.out.println("Error connecting I/O\n");}
+        run();
     }
     
     public void run(){
@@ -89,17 +90,23 @@ private class ClientThread extends Thread{
         String action = "";
 
         while(connected){
-
+            System.out.println("93");
             try{
                 action = this.sin.readUTF();
+                System.out.println(action);
                 username = this.sin.readUTF();
-                if(username == null)
-                    continue;
+                System.out.println(username);
+                if(username != null) {
+                    this.sout.writeBoolean(true);
+                    this.sout.flush();
+                    System.out.println(action);
+                }
 
                 if(userfile == null){
                     userfile = new File("users.txt");
                     writer = new FileWriter(userfile);
                     password = this.sin.readUTF();
+                    System.out.println(password);
                     if(password != null)
                         this.user = addUser(username, password);
                 }
@@ -120,8 +127,10 @@ private class ClientThread extends Thread{
                                     this.user = null;
                                     break;
                                 }
-                                else
+                                else {
+                                    this.sout.flush();
                                     this.gui.append("Logged in as " + username + "\n");
+                                }
                             }
                             catch(Exception e){
                                 this.gui.append("Error logging in user\n");
@@ -143,6 +152,11 @@ private class ClientThread extends Thread{
 }
 
     public static void main(String[] args){
-        Server server = new Server(2222);
+        try {
+            Server server = new Server(2222);
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
     }
 }

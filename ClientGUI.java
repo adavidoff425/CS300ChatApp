@@ -18,7 +18,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
 
     public ClientGUI(String host, int port){
         super(host, port);
-        super.gui = this;
+        this.gui = this;
 
         this.buttonPanel = new JPanel();
         this.layout = new GroupLayout(getContentPane());
@@ -29,6 +29,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         try{
             // Initial panel
             this.text = new JTextArea("");
+            this.text.setEditable(false);
             this.register = new JButton("New User");
             this.login = new JButton("Existing User");
             this.register.addActionListener(this);
@@ -99,7 +100,8 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
                 this.registerPanel.setVisible(true);
                 this.layout.replace(this.buttonPanel, this.registerPanel);
             } else if (source == this.login) {
-                super.sout.writeUTF("LOGIN");
+                this.sout.writeUTF("LOGIN");
+                this.sout.flush();
                 this.loginPanel.setVisible(true);
                 this.buttonPanel.setVisible(false);
                 this.layout.replace(this.buttonPanel, this.loginPanel);
@@ -115,8 +117,19 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
                 this.users.setVisible(true);
                 // userList();
             } else if (source == this.enter) {
-                super.sout.writeUTF("REGISTER");
-                registerUser();
+                this.sout.writeUTF("REGISTER");
+                this.sout.flush();
+                try{
+                    String name = this.username.getText();
+                    String pw = this.password.getText();
+                }
+                catch(Exception te)
+                    {append("Error retrieving entered text");}
+                if(registerUser(name, pw)) {
+                    this.registerPanel.setVisible(false);
+                    this.runningPanel.setVisible(true);
+                    this.layout.replace(this.registerPanel, this.runningPanel);
+                }
             }
         }
         catch(IOException ioe){
@@ -200,16 +213,12 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         this.users.setVisible(false);
     }
 
-    public void registerUser(){
-        String name = null, pw = null;
-        try{
-            name = this.username.getText();
-            pw = this.password.getText();
-        }
-        catch(Exception e)
-            {append("Error retrieving entered text");}
-        if(!register(name, pw))
-            registerScreen();
+    public boolean registerUser(String name, String pw){
+
+        System.out.println(name+pw);
+        if(register(name, pw))
+            return true;
+        return false;
     }
 
     public void valueChanged(ListSelectionEvent event){}

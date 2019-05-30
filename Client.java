@@ -42,6 +42,7 @@ public class Client extends JFrame{
             this.gui.append("Error creating I/O streams" + e + "\n");
             return false;
         }
+
         return true;
     }
     
@@ -50,7 +51,7 @@ public class Client extends JFrame{
             this.sout.writeChars(name);
             this.sout.flush();
             boolean available = this.sin.readBoolean();
-
+            System.out.println(password);
             if (!available) {
                 this.gui.append("Username already taken");
                 return false;
