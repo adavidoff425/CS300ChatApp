@@ -41,5 +41,7 @@ public class User{
     public boolean find(String name){
         return this.username.equals(name);
     }
+
+    public String getPass() {return this.password;}
     
 }

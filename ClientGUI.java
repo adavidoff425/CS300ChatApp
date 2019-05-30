@@ -60,8 +60,8 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
                         .addComponent(users))
                     .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                         .addComponent(chatPanel))
-                        .addComponent(history))
-                    .addGroup(layout.createHorizontalGroup(GroupLayout.Alignment.BASELINE)
+                  //      .addComponent(history))
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.CENTER)
                         .addComponent(text))
         );
         
@@ -76,12 +76,12 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
                     .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                         .addComponent(users)
                         .addComponent(chatPanel))
-                        .addComponent(history))
-                    .addGroup(layout.createVerticalGroup(GroupLayout.Alignment.BASELINE)
+                    //    .addComponent(history))
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.CENTER)
                         .addComponent(text))
         );
         
-        this.setSize(400, 250);
+        this.setSize(1000, 800);
         this.layout.setHonorsVisibility(true);
         connect();
         this.setVisible(true);
@@ -91,39 +91,37 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         this.text.append(string);
     }
     
-    public void actionPerformed(ActionEvent e){
-        Object source = e.getSource();
-        if(source == this.register){
-            this.buttonPanel.setVisible(false);
-            this.registerPanel.setVisible(true);
-            this.layout.replace(this.buttonPanel, this.registerPanel);
+    public void actionPerformed(ActionEvent e) {
+        try {
+            Object source = e.getSource();
+            if (source == this.register) {
+                this.buttonPanel.setVisible(false);
+                this.registerPanel.setVisible(true);
+                this.layout.replace(this.buttonPanel, this.registerPanel);
+            } else if (source == this.login) {
+                super.sout.writeUTF("LOGIN");
+                this.loginPanel.setVisible(true);
+                this.buttonPanel.setVisible(false);
+                this.layout.replace(this.buttonPanel, this.loginPanel);
+                //login();
+            } else if (source == this.logout) {
+                //logout();
+                this.layout.replace(this.runningPanel, this.buttonPanel);
+                this.chatPanel.setVisible(false);
+                this.users.setVisible(false);
+                this.history.setVisible(false);
+                this.buttonPanel.setVisible(true);
+            } else if (source == this.displayUsers) {
+                this.users.setVisible(true);
+                // userList();
+            } else if (source == this.enter) {
+                super.sout.writeUTF("REGISTER");
+                registerUser();
+            }
         }
-        
-        else if(source == this.login){
-            this.loginPanel.setVisible(true);
-            this.buttonPanel.setVisible(false);
-            this.layout.replace(this.buttonPanel, this.loginPanel);
-            //login();
+        catch(IOException ioe){
+            append("Error sending action information to server\n");
         }
-
-        else if(source == this.logout){
-            //logout();
-            this.layout.replace(this.runningPanel, this.buttonPanel);
-            this.chatPanel.setVisible(false);
-            this.users.setVisible(false);
-            this.history.setVisible(false);
-            this.buttonPanel.setVisible(true);
-        }
-
-        else if(source == this.displayUsers){
-            this.users.setVisible(true);
-           // userList();
-        }
-
-        else if(source == this.enter){
-            registerUser();
-        }
-
     }
     
     public void registerScreen(){

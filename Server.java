@@ -9,9 +9,13 @@ public class Server{
     private ServerSocket socket;
     private boolean running;
     private int port;
+    private File userfile;
+    private FileWriter writer;
     
     public Server(int port){
         this.port = port;
+        this.users = null;
+        this.userfile = null;
         connect();
     }
     
@@ -51,9 +55,11 @@ public class Server{
     }
 
     // Adds user object to list of objects
-    public User addUser(String name, String pw){
+    public User addUser(String name, String pw) throws IOException{
         User newUser = new User(name, pw);
         this.users.add(newUser);
+        this.writer.write(name + "\n" + pw + "\n");
+        this.writer.close();
         // ADD WRITE TO FILE FOR UN, PW, AND CHAT HISTORY
         newUser.login(name, pw);
         return newUser;
@@ -73,36 +79,70 @@ private class ClientThread extends Thread{
             this.sin = new DataInputStream(this.clientSocket.getInputStream());
             this.sout = new DataOutputStream(this.clientSocket.getOutputStream());
         }
-        catch(IOException e){this.gui.append("Error connecting I/O");}
+        catch(IOException e){this.gui.append("Error connecting I/O\n");}
     }
     
     public void run(){
         this.connected = true;
         String username = "";
+        String password = "";
+        String action = "";
 
         while(connected){
+
             try{
+                action = this.sin.readUTF();
                 username = this.sin.readUTF();
                 if(username == null)
                     continue;
-                for(User u : users){
-                    if(u.find(username)){
-                        this.sout.writeUTF(username + " already used. Please enter another username");
-                        this.sout.flush();
+
+                if(userfile == null){
+                    userfile = new File("users.txt");
+                    writer = new FileWriter(userfile);
+                    password = this.sin.readUTF();
+                    if(password != null)
+                        this.user = addUser(username, password);
+                }
+
+                else {
+                    for (User u : users) {
+                        if (u.find(username) && action.equals("REGISTER")) {
+                            this.sout.writeUTF(username + " already used. Please enter another username\n");
+                            this.sout.flush();
+                            break;
+                        } else if (u.find(username) && action.equals("LOGIN")){
+                            try {
+                                this.user = u;
+                                password = this.sin.readUTF();
+                                if (!this.user.login(username, password)) {
+                                    this.sout.writeUTF("Incorrect password\n");
+                                    this.sout.flush();
+                                    this.user = null;
+                                    break;
+                                }
+                                else
+                                    this.gui.append("Logged in as " + username + "\n");
+                            }
+                            catch(Exception e){
+                                this.gui.append("Error logging in user\n");
+                            }
+                        }
+
                     }
                 }
             }
             catch(IOException e){
-                this.gui.append("Error reading username from client");
+                this.gui.append("Error reading username from client\n");
             }
-            try{
-                String password = this.sin.readUTF();
-                this.user = addUser(username, password);
-            }
+
             catch(Exception e){
-                this.gui.append("Error creating new user");
+                this.gui.append("Error creating new user\n");
             }
         }
     }
 }
+
+    public static void main(String[] args){
+        Server server = new Server(2222);
+    }
 }

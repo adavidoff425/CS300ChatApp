@@ -46,19 +46,19 @@ public class Client extends JFrame{
     }
     
     public boolean register(String name, String password){
-        try{
+        try {
             this.sout.writeChars(name);
             this.sout.flush();
             boolean available = this.sin.readBoolean();
-            
-        if(!available){
-            this.gui.append("Username already taken");
-            return false;
-        }
-        
+
+            if (!available) {
+                this.gui.append("Username already taken");
+                return false;
+            }
+
             this.sout.writeChars(password);
             this.clientSocket.close();
-
+        }
         catch(Exception e) {
             e.printStackTrace();
         }
