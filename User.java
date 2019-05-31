@@ -5,6 +5,7 @@ public class User{
     private String username, password;
     private boolean loggedIn;
     private ArrayList<String> chatHistory;
+    private File history;
     
     public User(String name, String pw){
         this.username = name;

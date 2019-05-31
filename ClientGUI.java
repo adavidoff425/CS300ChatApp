@@ -49,17 +49,17 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
 
         this.layout.setHorizontalGroup(layout.createSequentialGroup()
                     .addGroup(layout.createParallelGroup()
-                        .addComponent(buttonPanel))
-                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING))
-                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                        .addComponent(registerPanel))
-                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING))
-                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addComponent(buttonPanel)
+                //    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING))
+                //    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addComponent(registerPanel)
+                //    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING))
+                    .addGroup(layout.createParallelGroup()
                         .addComponent(loginPanel)
                         .addComponent(runningPanel))
-                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                        .addComponent(users))
-                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                //    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addComponent(users)
+                 //   .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                         .addComponent(chatPanel))
                   //      .addComponent(history))
                     .addGroup(layout.createParallelGroup(GroupLayout.Alignment.CENTER)
@@ -68,13 +68,13 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         
         this.layout.setVerticalGroup(layout.createSequentialGroup()
                 .addGroup(layout.createParallelGroup()
-                    .addComponent(buttonPanel))
-                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                    .addComponent(buttonPanel)
+                //    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                         .addComponent(registerPanel)
-                        .addComponent(loginPanel))
-                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.CENTER)
+                        .addComponent(loginPanel)
+                    .addGroup(layout.createParallelGroup()
                         .addComponent(runningPanel))
-                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                  //  .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                         .addComponent(users)
                         .addComponent(chatPanel))
                     //    .addComponent(history))
@@ -82,7 +82,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
                         .addComponent(text))
         );
         
-        this.setSize(1000, 800);
+        this.setSize(400, 250);
         this.layout.setHonorsVisibility(true);
         connect();
         this.setVisible(true);
@@ -105,7 +105,6 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
                 this.loginPanel.setVisible(true);
                 this.buttonPanel.setVisible(false);
                 this.layout.replace(this.buttonPanel, this.loginPanel);
-                //login();
             } else if (source == this.logout) {
                 //logout();
                 this.layout.replace(this.runningPanel, this.buttonPanel);
@@ -119,18 +118,52 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
             } else if (source == this.enter) {
                 this.sout.writeUTF("REGISTER");
                 this.sout.flush();
-                try{
-                    String name = this.username.getText();
-                    String pw = this.password.getText();
+                try {
+                    this.name = new String(this.username.getText());
+                    this.pw = new String(this.password.getText());
+                } catch (Exception te) {
+                    append("Error retrieving register screen text\n");
                 }
-                catch(Exception te)
-                    {append("Error retrieving entered text");}
-                if(registerUser(name, pw)) {
-                    this.registerPanel.setVisible(false);
+                if (registerUser(this.name, this.pw)) {
+                    System.out.println("Registered" + this.name + "\n");
+                    this.username.setText("Enter username: ");
+                    this.password.setText("Enter password: ");
+               /*     this.registerPanel.setVisible(false);
                     this.runningPanel.setVisible(true);
-                    this.layout.replace(this.registerPanel, this.runningPanel);
+                    this.layout.replace(this.registerPanel, this.runningPanel);*/
+                }
+            } else if (source == this.login2){
+                try{
+                    this.name = new String(this.username2.getText());
+                    this.pw = new String(this.password2.getText());
+                }
+                catch (Exception le){
+                    append("Error retrieving login screen text\n");
+                }
+                if (registerUser(this.name, this.pw)) {
+                    append("Logged in as " + this.name + "\n");
+                    this.username2.setText("Enter username: ");
+                    this.password2.setText("Enter password: ");
+                /*    this.loginPanel.setVisible(false);
+                    this.runningPanel.setVisible(true);
+                    this.layout.replace(this.loginPanel, this.runningPanel);*/
                 }
             }
+
+         /*   } else if (source == this.username) {
+                try {
+                    System.out.println(this.username.getText());
+                    this.name = new String(this.username.getText());
+                    append(this.name);
+                } catch (Exception une) {
+                    append("Error retrieving username text\n");
+                }
+            } else if (source == this.password){
+
+                catch (Exception pwe){
+                    append("Error retrieving password text\n");
+                }
+            }*/
         }
         catch(IOException ioe){
             append("Error sending action information to server\n");
@@ -215,7 +248,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
 
     public boolean registerUser(String name, String pw){
 
-        System.out.println(name+pw);
+        append(name+pw);
         if(register(name, pw))
             return true;
         return false;

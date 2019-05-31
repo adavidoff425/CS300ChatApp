@@ -48,7 +48,7 @@ public class Client extends JFrame{
     
     public boolean register(String name, String password){
         try {
-            this.sout.writeChars(name);
+            this.sout.writeUTF(name);
             this.sout.flush();
             boolean available = this.sin.readBoolean();
             System.out.println(password);
@@ -57,8 +57,7 @@ public class Client extends JFrame{
                 return false;
             }
 
-            this.sout.writeChars(password);
-            this.clientSocket.close();
+            this.sout.writeUTF(password);
         }
         catch(Exception e) {
             e.printStackTrace();

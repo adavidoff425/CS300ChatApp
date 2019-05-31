@@ -16,6 +16,7 @@ public class Server{
         this.port = port;
         this.users = null;
         this.userfile = null;
+        this.writer = null;
         connect();
     }
     
@@ -26,6 +27,7 @@ public class Server{
         catch(IOException e){System.out.println("Couldn't connect to socket\n");}
         Socket server = null;
         this.running = true;
+        System.out.println("Waiting on clients to connect\n");
         while(running){
             try {
                 server = this.socket.accept();
@@ -90,25 +92,27 @@ private class ClientThread extends Thread{
         String action = "";
 
         while(connected){
-            System.out.println("93");
             try{
                 action = this.sin.readUTF();
-                System.out.println(action);
                 username = this.sin.readUTF();
-                System.out.println(username);
                 if(username != null) {
                     this.sout.writeBoolean(true);
                     this.sout.flush();
-                    System.out.println(action);
                 }
 
                 if(userfile == null){
                     userfile = new File("users.txt");
                     writer = new FileWriter(userfile);
                     password = this.sin.readUTF();
-                    System.out.println(password);
-                    if(password != null)
-                        this.user = addUser(username, password);
+                    if(password != null) {
+                       try {
+                            writer.write(username + "\n" + password + "\n");
+                            writer.close();
+                        } catch (IOException we) {
+                            System.out.println("Error writing to file\n");
+                        }
+                       this.user = addUser(username, password);
+                    }
                 }
 
                 else {
