@@ -4,22 +4,51 @@ import java.util.*;
 public class User{
     private String username, password;
     private boolean loggedIn;
-    private ArrayList<String> chatHistory;
-    private File history;
+    private ArrayList<String> chatHistory = new ArrayList<>();
+    private File historyfile;
+    private FileWriter writer;
+    private FileReader fileReader;
+    private BufferedReader reader;
     
     public User(String name, String pw){
         this.username = name;
         this.password = pw;
-        this.chatHistory = new ArrayList<>();
+        this.historyfile = new File(this.username + ".txt");
+        if(!historyfile.exists()) {
+            try{
+                this.historyfile.createNewFile();
+                this.writer = new FileWriter(this.historyfile);
+                this.fileReader = new FileReader(this.historyfile);
+                this.reader = new BufferedReader(fileReader);
+            }
+            catch(IOException e){
+                System.out.println("Error reading/writing new user history file\n");
+            }
+        }
+        else{
+            try{
+                this.writer = new FileWriter(this.historyfile, true);
+                this.fileReader = new FileReader(this.historyfile);
+                this.reader = new BufferedReader(fileReader);
+            }
+            catch(IOException e){
+                System.out.println("Error reading/writing user history file\n");
+            }
+        }
         this.loggedIn = false;
     }
     
-    public boolean login(String name, String pw){
+    public User loginAttempt(String name, String pw) throws FileNotFoundException{
         if(this.username.equals(name) && this.password.equals(pw)){
+            getHistory();
             this.loggedIn = true;
-            return true;
+            return this;
         }
-        return false;
+        return null;
+    }
+
+    public boolean login(String name, String pw){
+        return this.loggedIn = true;
     }
     
     public void logout(){
@@ -28,6 +57,11 @@ public class User{
     
     public ArrayList<String> retrieve_chatHistory(){
         return this.chatHistory;
+    }
+
+    public void getHistory() throws FileNotFoundException{
+        this.fileReader = new FileReader(historyfile);
+        this.reader = new BufferedReader(fileReader);
     }
     
     public boolean isLoggedIn(){

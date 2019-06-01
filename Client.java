@@ -51,17 +51,40 @@ public class Client extends JFrame{
             this.sout.writeUTF(name);
             this.sout.flush();
             boolean available = this.sin.readBoolean();
-            System.out.println(password);
             if (!available) {
-                this.gui.append("Username already taken");
+                this.gui.append("Username already taken\n");
                 return false;
             }
 
             this.sout.writeUTF(password);
         }
         catch(Exception e) {
-            e.printStackTrace();
+            System.out.println("Error registering user\n");
         }
         return true;
     }
-}
+
+    public boolean login(String name, String password){
+        try {
+            this.sout.writeUTF(name);
+            this.sout.flush();
+            boolean exists = this.sin.readBoolean();
+            if (!exists) {
+                this.gui.append("Username not found\n");
+                return false;
+            }
+            this.sout.writeUTF(password);
+            this.sout.flush();
+            boolean correct = this.sin.readBoolean();
+            if (!correct) {
+                this.gui.append("Incorrect password\n");
+                return false;
+            }
+        }
+            catch(Exception e){
+                System.out.println("Error logging in\n");
+            }
+
+            return true;
+        }
+    }

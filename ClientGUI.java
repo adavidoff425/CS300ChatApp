@@ -50,14 +50,10 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         this.layout.setHorizontalGroup(layout.createSequentialGroup()
                     .addGroup(layout.createParallelGroup()
                         .addComponent(buttonPanel)
-                //    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING))
-                //    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                        .addComponent(registerPanel)
-                //    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING))
-                    .addGroup(layout.createParallelGroup()
                         .addComponent(loginPanel)
+                        .addComponent(registerPanel)
+                    .addGroup(layout.createSequentialGroup()
                         .addComponent(runningPanel))
-                //    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                         .addComponent(users)
                  //   .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                         .addComponent(chatPanel))
@@ -72,7 +68,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
                 //    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                         .addComponent(registerPanel)
                         .addComponent(loginPanel)
-                    .addGroup(layout.createParallelGroup()
+                    .addGroup(layout.createSequentialGroup()
                         .addComponent(runningPanel))
                   //  .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                         .addComponent(users)
@@ -128,9 +124,9 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
                     System.out.println("Registered" + this.name + "\n");
                     this.username.setText("Enter username: ");
                     this.password.setText("Enter password: ");
-               /*     this.registerPanel.setVisible(false);
+                    this.registerPanel.setVisible(false);
                     this.runningPanel.setVisible(true);
-                    this.layout.replace(this.registerPanel, this.runningPanel);*/
+                    this.layout.replace(this.registerPanel, this.runningPanel);
                 }
             } else if (source == this.login2){
                 try{
@@ -140,30 +136,15 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
                 catch (Exception le){
                     append("Error retrieving login screen text\n");
                 }
-                if (registerUser(this.name, this.pw)) {
+                if (loginAttempt(this.name, this.pw)) {
                     append("Logged in as " + this.name + "\n");
                     this.username2.setText("Enter username: ");
                     this.password2.setText("Enter password: ");
-                /*    this.loginPanel.setVisible(false);
+                    this.loginPanel.setVisible(false);
                     this.runningPanel.setVisible(true);
-                    this.layout.replace(this.loginPanel, this.runningPanel);*/
+                    this.layout.replace(this.loginPanel, this.runningPanel);
                 }
             }
-
-         /*   } else if (source == this.username) {
-                try {
-                    System.out.println(this.username.getText());
-                    this.name = new String(this.username.getText());
-                    append(this.name);
-                } catch (Exception une) {
-                    append("Error retrieving username text\n");
-                }
-            } else if (source == this.password){
-
-                catch (Exception pwe){
-                    append("Error retrieving password text\n");
-                }
-            }*/
         }
         catch(IOException ioe){
             append("Error sending action information to server\n");
@@ -248,10 +229,15 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
 
     public boolean registerUser(String name, String pw){
 
-        append(name+pw);
         if(register(name, pw))
             return true;
         return false;
+    }
+
+    public boolean loginAttempt(String name, String pw){
+       if(login(name, pw))
+           return true;
+       return false;
     }
 
     public void valueChanged(ListSelectionEvent event){}

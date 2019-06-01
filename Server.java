@@ -15,30 +15,36 @@ public class Server {
     private FileReader fileReader;
     private BufferedReader reader;
 
-    public Server(int port) throws ClassNotFoundException {
+    public Server(int port) throws ClassNotFoundException, IOException {
         this.port = port;
-        try {
-            this.userfile = File.createTempFile("users", ".txt");
-        }
-        catch(IOException e){
-            System.out.println("file error\n");
-        }
-        if (!this.userfile.exists())
-            this.userfile = new File("users.txt");
-        else {
+        this.userfile = new File("users.txt");
+        if(!this.userfile.exists()) {
+            userfile.createNewFile();
             try {
-                this.fileReader = new FileReader(userfile);
+                this.fileReader = new FileReader(this.userfile);
                 this.reader = new BufferedReader(fileReader);
-                this.writer = new FileWriter(userfile);
+                this.writer = new FileWriter(this.userfile);
             } catch (Exception e) {
                 System.out.println("Error setting up file read/write\n");
+                e.printStackTrace();
             }
+        }
+        else{
+            try{
+                this.fileReader = new FileReader(this.userfile);
+                this.reader = new BufferedReader(fileReader);
+                this.writer = new FileWriter(this.userfile, true);
+            }
+            catch(Exception e){
+                System.out.println("Error setting up file read/write\n");
+                e.printStackTrace();
+            }
+        }
             try {
                 getUsers();
             } catch (Exception gue) {
                 System.out.println("Error reading user file\n");
             }
-        }
         connect();
     }
 
@@ -86,8 +92,7 @@ public class Server {
         this.users.add(newUser);
         this.usernames.add(name);
         this.writer.write(name + "\n" + pw + "\n");
-        this.writer.close();
-        // ADD WRITE TO FILE FOR UN, PW, AND CHAT HISTORY
+        this.writer.flush();
         return newUser;
     }
 
@@ -99,6 +104,7 @@ public class Server {
             User newUser = new User(nextUser, nextPW);
             users.add(newUser);
         }
+        System.out.println(usernames);
         this.reader.close();
         this.fileReader.close();
     }
@@ -128,6 +134,8 @@ public class Server {
             String username = new String();
             String password = new String();
             String action = new String();
+            Boolean LOGIN = false;
+            Boolean REGISTER = true;
 
             while (connected) {
                 try {
@@ -136,35 +144,38 @@ public class Server {
                     if (action.equals("REGISTER") || action.equals("LOGIN")) {
                         username = this.sin.readUTF();
                         for (String u : usernames) {
-                            if (u.equals(username) && action.equals("REGISTER")) {
-                                this.sout.writeUTF(username + " already used. Please enter another username\n");
-                                this.sout.flush();
-                                this.sout.writeBoolean(false);
-                                this.sout.flush();
-                                break;
-                            } else if (u.equals(username) && action.equals("LOGIN")) {
-                                try {
-                                    password = this.sin.readUTF();
-                                    for (User aUser : users) {
-                                        if (!aUser.find(username))
-                                            continue;
-                                        this.user = aUser.loginAttempt(username, password);
-                                        if (this.user == null) {
-                                            this.sout.writeUTF("Incorrect password\n");
-                                            this.sout.flush();
-                                            break;
+                            if (action.equals("REGISTER") && u.equals(username)) {
+                                    REGISTER = false;
+                                    this.sout.writeBoolean(REGISTER);
+                                    this.sout.flush();
+                                    break;
+                            } else if (action.equals("LOGIN") && u.equals(username)) {
+                                    try {
+                                        System.out.println(users);
+                                        LOGIN = true;
+                                        this.sout.writeBoolean(LOGIN);
+                                        password = this.sin.readUTF();
+                                        for (User aUser : users) {
+                                            if (!aUser.find(username))
+                                                continue;
+                                            this.user = aUser.loginAttempt(username, password);
+                                            if (this.user == null) {
+                                                this.sout.writeBoolean(false);
+                                                this.sout.flush();
+                                                break;
+                                            }
+                                            else
+                                                this.sout.writeBoolean(true);
                                         }
-                                        break;
+                                    } catch (Exception e) {
+                                        System.out.println("Error logging in user in server\n");
                                     }
                                 }
-                                catch(Exception e){
-                                        System.out.println("Error logging in user\n");
-                                    }
                             }
 
 
                         }
-                        if (action.equals("REGISTER")) {
+                        if (action.equals("REGISTER") && REGISTER) {
                             this.sout.writeBoolean(true);
                             this.sout.flush();
                             password = this.sin.readUTF();
@@ -172,9 +183,13 @@ public class Server {
                                 this.user = addUser(username, password);
                             }
                         }
-                    }
+                        else if (action.equals("LOGIN") && !LOGIN){
+                            this.sout.writeBoolean(false);
+                            this.sout.flush();
+                        }
+
                 } catch (Exception ae) {
-                    ae.printStackTrace();
+                    System.out.println("Client Thread exception caught\n");
                 }
             }
         }
