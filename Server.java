@@ -123,6 +123,7 @@ public class Server {
             } catch (IOException e) {
                 System.out.println("Error connecting I/O\n");
             }
+            start();
             run();
         }
 
@@ -142,15 +143,33 @@ public class Server {
                 listen();
             }
 
-            else if(action =="HISTORY"){
-
+            else if(action.equals("HISTORY")){
+                ArrayList<String> history = new ArrayList<>();
+                history = this.user.retrieve_chatHistory();
+                for(String msg : history){
+                    this.sout.writeUTF(msg);
+                    this.sout.flush();
+                }
+                this.sout.writeUTF("DONE");
+                this.sout.flush();
+                listen();
             }
 
-            else if(action == "SENDMSG"){
-
+            else if(action.equals("SENDMSG")) {
+                String usr = this.sin.readUTF();
+                String msg = this.sin.readUTF();
+                User to = null;
+                for (User u : users) {
+                    if (u.find(usr)) {
+                        u.add_msg(this, msg);
+                        this.add_msg(this, msg);
+                        listen();
+                    }
+                }
+                return false;
             }
 
-            else if(action == "LOGOUT") {
+            else if(action.equals("LOGOUT")) {
                 this.user.logout();
                 // Refresh all user lists
                 return false;
@@ -160,7 +179,8 @@ public class Server {
         }
 
         public synchronized void run() {
-            clients.add(this);
+            if(!clients.contains(this))
+                clients.add(this);
             this.connected = true;
             String username = new String();
             String password = new String();
@@ -179,7 +199,7 @@ public class Server {
                                 REGISTER = false;
                                 this.sout.writeBoolean(REGISTER);
                                 this.sout.flush();
-                                break;
+                                run();
                             } else if (action.equals("LOGIN") && u.equals(username)) {
                                 try {
                                     LOGIN = true;
@@ -192,7 +212,7 @@ public class Server {
                                         if (this.user == null) {
                                             this.sout.writeBoolean(false);
                                             this.sout.flush();
-                                            break;
+                                            run();
                                         } else {
                                             this.sout.writeBoolean(true);
                                             connected = listen();
@@ -216,6 +236,7 @@ public class Server {
                         } else if (action.equals("LOGIN") && !LOGIN) {
                             this.sout.writeBoolean(false);
                             this.sout.flush();
+                            run();
                         }
                     }
 

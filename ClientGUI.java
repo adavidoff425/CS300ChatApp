@@ -9,13 +9,13 @@ import javax.swing.event.*;
 class ClientGUI extends Client implements ListSelectionListener, ActionListener{
     private CardLayout layout, textLayout;
     private JPanel cards, active, textBox;
-    private JButton register, login, login2, logout, displayUsers, displayHistory, enter, send, exit, clear;
-    private JTextArea chat, msg, text;
+    private JButton register, login, login2, logout, displayUsers, displayHistory, enter, send, exit, exit2, clear;
+    private JTextArea chat, msg, text, allmsgs;
     private JTextField username, password, username2, password2;
     private JList<String> onlineUsers;
     private DefaultListModel listModel;
     private JScrollPane users, history;
-    private JPanel buttonPanel, registerPanel, loginPanel, runningPanel, chatPanel;
+    private JPanel buttonPanel, registerPanel, loginPanel, runningPanel, chatPanel, historyPanel;
     final static String BUTTONPANEL = "Chat Application";
     final static String REGISTERPANEL = "Register New User";
     final static String LOGINPANEL = "Please Login";
@@ -55,6 +55,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
             runningScreen();
             chatScreen();
             usersScreen();
+            historyScreen();
         }
         catch(Exception e){
             e.printStackTrace();
@@ -66,15 +67,14 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         this.cards.add(this.runningPanel, RUNNINGPANEL);
         this.cards.add(this.chatPanel, CHATPANEL);
         this.cards.add(this.users, USERS);
+        this.cards.add(this.historyPanel, HISTORY);
         this.textBox.add(this.text, TEXT);
-       // this.active.add(this.history, HISTORY);
-        
-        this.setSize(1000, 750);
-       // this.layout.setHonorsVisibility(true);
+
         connect();
         this.add(this.cards, BorderLayout.CENTER);
         this.add(this.textBox, BorderLayout.NORTH);
         this.pack();
+        this.setSize(1000, 750);
         this.setVisible(true);
     }
     
@@ -213,6 +213,19 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         //this.onlineUsers.addMouseListener(selection);
         this.users = new JScrollPane(this.onlineUsers);
         this.onlineUsers.addListSelectionListener(this);
+    }
+
+    public void historyScreen(){
+        this.historyPanel = new JPanel();
+        this.exit2 = new JButton("Exit history");
+        this.allmsgs = new JTextArea(80, 60);
+        this.allmsgs.setEditable(false);
+        this.allmsgs.setLineWrap(true);
+        this.history = new JScrollPane(this.allmsgs);
+        this.exit2.addActionListener(this);
+        this.historyPanel.add(this.exit2);
+        this.historyPanel.add(this.history);
+
     }
 
     public boolean registerUser(String name, String pw){
