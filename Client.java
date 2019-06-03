@@ -21,7 +21,6 @@ public class Client extends JFrame{
         super("Chat Application");
         this.server_address = server;
         this.port = port;
-        this.scan = new Scanner(System.in);
     }
 
     public boolean connect(){

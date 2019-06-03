@@ -9,7 +9,7 @@ import javax.swing.event.*;
 class ClientGUI extends Client implements ListSelectionListener, ActionListener{
     private CardLayout layout, textLayout;
     private JPanel cards, active, textBox;
-    private JButton register, login, login2, logout, displayUsers, displayHistory, enter, send, exit, exit2, clear;
+    private JButton register, login, login2, logout, displayUsers, displayHistory, enter, send, exit, exit2, clear, start;
     private JTextArea chat, msg, text, allmsgs;
     private JTextField username, password, username2, password2;
     private JList<String> onlineUsers;
@@ -26,7 +26,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
     final static String TEXT = "Message Area";
     final static String ACTIVE = "Logged into Application";
     //private MouseListener selection = new MouseAdapter();
-    private String name, pw;
+    private String name, pw, currentUser;
 
     public ClientGUI(String host, int port){
         super(host, port);
@@ -210,9 +210,13 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         this.onlineUsers.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         this.onlineUsers.setLayoutOrientation(JList.VERTICAL);
         this.onlineUsers.setVisibleRowCount(10);
-        //this.onlineUsers.addMouseListener(selection);
-        this.users = new JScrollPane(this.onlineUsers);
         this.onlineUsers.addListSelectionListener(this);
+        this.start = new JButton("Start Chat");
+        this.userPanel = new JPanel();
+        this.userPanel.add(this.onlineUsers);
+        this.userPAnel.add(this.start);
+        //this.onlineUsers.addMouseListener(selection);
+        this.users = new JScrollPane(this.userPanel);
     }
 
     public void historyScreen(){
@@ -241,5 +245,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
        return false;
     }
 
-    public void valueChanged(ListSelectionEvent event){}
+    public void valueChanged(ListSelectionEvent event){
+        this.currentUser = this.users.getSelectedValue();
+    }
 }

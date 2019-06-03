@@ -63,10 +63,22 @@ public class Server {
             } catch (IOException e) {
                 System.out.println("Error connecting socket\n");
             }
-            if (!running)
-                break;
-            ClientThread newClient = new ClientThread(server);
-            this.clients.remove(newClient);
+            System.out.println("New client connected");
+            try {
+                DataInputStream in = new DataInputStream(server.getInputStream());
+                DataOutputStream out = new DataOutputStream(server.getOutputStream());
+                Thread newClient = new ClientThread(server, in, out);
+                newClient.start();
+            }
+            catch(Exception e) {
+                try {
+                    server.close();
+                }
+                catch(IOException ioe){
+                    System.out.println("Closing connection");
+                }
+                System.out.println("Error assigning new thread");
+            }
         }
         // Server no longer running
         try {
@@ -109,22 +121,16 @@ public class Server {
 
     private class ClientThread extends Thread {
         private User user;
-        private Socket clientSocket;
-        private DataInputStream sin;
-        private DataOutputStream sout;
-        private ClientGUI gui;
+        final private Socket clientSocket;
+        final private DataInputStream sin;
+        final private DataOutputStream sout;
+       // final private ClientGUI gui;
         private boolean connected;
 
-        public ClientThread(Socket socket) throws ClassNotFoundException {
+        public ClientThread(Socket socket, DataInputStream in, DataOutputStream out) throws ClassNotFoundException {
             this.clientSocket = socket;
-            try {
-                this.sin = new DataInputStream(socket.getInputStream());
-                this.sout = new DataOutputStream(socket.getOutputStream());
-            } catch (IOException e) {
-                System.out.println("Error connecting I/O\n");
-            }
-            start();
-            run();
+            this.sin = in;
+            this.sout = out;
         }
 
         public synchronized boolean listen() throws IOException{
@@ -161,8 +167,8 @@ public class Server {
                 User to = null;
                 for (User u : users) {
                     if (u.find(usr)) {
-                        u.add_msg(this, msg);
-                        this.add_msg(this, msg);
+                        u.add_msg(this.user, msg);
+                        this.user.add_msg(this.user, msg);
                         listen();
                     }
                 }
@@ -178,12 +184,11 @@ public class Server {
             return true;
         }
 
-        public synchronized void run() {
+        @Override
+        public void run() {
             if(!clients.contains(this))
                 clients.add(this);
             this.connected = true;
-            String username = new String();
-            String password = new String();
             String action = new String();
             Boolean LOGIN = false;
             Boolean REGISTER = true;
@@ -193,6 +198,8 @@ public class Server {
                     action = this.sin.readUTF();
 
                     if (action.equals("REGISTER") || action.equals("LOGIN")) {
+                        String username = new String();
+                        String password = new String();
                         username = this.sin.readUTF();
                         for (String u : usernames) {
                             if (action.equals("REGISTER") && u.equals(username)) {
