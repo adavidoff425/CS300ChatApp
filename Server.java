@@ -5,7 +5,6 @@ import java.net.*;
 public class Server {
     private static ArrayList<String> usernames = new ArrayList<>();
     private static Set<User> users = new HashSet<>();
-    //  private static Set<PrintWriter> writers = new HashSet<>();
     private static ArrayList<ClientThread> clients = new ArrayList<>();
     private ServerSocket socket;
     private boolean running;
@@ -104,7 +103,6 @@ public class Server {
             User newUser = new User(nextUser, nextPW);
             users.add(newUser);
         }
-        System.out.println(usernames);
         this.reader.close();
         this.fileReader.close();
     }
@@ -128,7 +126,40 @@ public class Server {
             run();
         }
 
-        public void run() {
+        public synchronized boolean listen() throws IOException{
+            String action = new String();
+
+            action = this.sin.readUTF();
+            if (action.equals("USERS")){
+                for(User u : users){
+                    if(u.isLoggedIn()){
+                        this.sout.writeUTF(u.get_name());
+                        this.sout.flush();
+                    }
+                }
+                this.sout.writeUTF("DONE");
+                this.sout.flush();
+                listen();
+            }
+
+            else if(action =="HISTORY"){
+
+            }
+
+            else if(action == "SENDMSG"){
+
+            }
+
+            else if(action == "LOGOUT") {
+                this.user.logout();
+                // Refresh all user lists
+                return false;
+            }
+
+            return true;
+        }
+
+        public synchronized void run() {
             clients.add(this);
             this.connected = true;
             String username = new String();
@@ -145,51 +176,52 @@ public class Server {
                         username = this.sin.readUTF();
                         for (String u : usernames) {
                             if (action.equals("REGISTER") && u.equals(username)) {
-                                    REGISTER = false;
-                                    this.sout.writeBoolean(REGISTER);
-                                    this.sout.flush();
-                                    break;
+                                REGISTER = false;
+                                this.sout.writeBoolean(REGISTER);
+                                this.sout.flush();
+                                break;
                             } else if (action.equals("LOGIN") && u.equals(username)) {
-                                    try {
-                                        System.out.println(users);
-                                        LOGIN = true;
-                                        this.sout.writeBoolean(LOGIN);
-                                        password = this.sin.readUTF();
-                                        for (User aUser : users) {
-                                            if (!aUser.find(username))
-                                                continue;
-                                            this.user = aUser.loginAttempt(username, password);
-                                            if (this.user == null) {
-                                                this.sout.writeBoolean(false);
-                                                this.sout.flush();
-                                                break;
-                                            }
-                                            else
-                                                this.sout.writeBoolean(true);
+                                try {
+                                    LOGIN = true;
+                                    this.sout.writeBoolean(LOGIN);
+                                    password = this.sin.readUTF();
+                                    for (User aUser : users) {
+                                        if (!aUser.find(username))
+                                            continue;
+                                        this.user = aUser.loginAttempt(username, password);
+                                        if (this.user == null) {
+                                            this.sout.writeBoolean(false);
+                                            this.sout.flush();
+                                            break;
+                                        } else {
+                                            this.sout.writeBoolean(true);
+                                            connected = listen();
                                         }
-                                    } catch (Exception e) {
-                                        System.out.println("Error logging in user in server\n");
                                     }
+                                } catch (Exception e) {
+                                    System.out.println("Error logging in user in server\n");
+                                    return;
                                 }
                             }
-
-
                         }
+
                         if (action.equals("REGISTER") && REGISTER) {
                             this.sout.writeBoolean(true);
                             this.sout.flush();
                             password = this.sin.readUTF();
                             if (password != null) {
                                 this.user = addUser(username, password);
+                                connected = listen();
                             }
-                        }
-                        else if (action.equals("LOGIN") && !LOGIN){
+                        } else if (action.equals("LOGIN") && !LOGIN) {
                             this.sout.writeBoolean(false);
                             this.sout.flush();
                         }
+                    }
 
                 } catch (Exception ae) {
                     System.out.println("Client Thread exception caught\n");
+                    return;
                 }
             }
         }

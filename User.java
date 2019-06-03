@@ -59,6 +59,8 @@ public class User{
         return this.chatHistory;
     }
 
+    public String get_name(){return this.username;}
+
     public void getHistory() throws FileNotFoundException{
         this.fileReader = new FileReader(historyfile);
         this.reader = new BufferedReader(fileReader);

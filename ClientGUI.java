@@ -7,27 +7,40 @@ import javax.swing.*;
 import javax.swing.event.*;
 
 class ClientGUI extends Client implements ListSelectionListener, ActionListener{
-    private GroupLayout layout;
+    private CardLayout layout, textLayout;
+    private JPanel cards, active, textBox;
     private JButton register, login, login2, logout, displayUsers, displayHistory, enter, send, exit, clear;
     private JTextArea chat, msg, text;
     private JTextField username, password, username2, password2;
     private JList<String> onlineUsers;
+    private DefaultListModel listModel;
     private JScrollPane users, history;
     private JPanel buttonPanel, registerPanel, loginPanel, runningPanel, chatPanel;
+    final static String BUTTONPANEL = "Chat Application";
+    final static String REGISTERPANEL = "Register New User";
+    final static String LOGINPANEL = "Please Login";
+    final static String RUNNINGPANEL = "Chat App Running";
+    final static String CHATPANEL = "Active Chat";
+    final static String USERS = "Active Users";
+    final static String HISTORY = "User Chat History";
+    final static String TEXT = "Message Area";
+    final static String ACTIVE = "Logged into Application";
+    //private MouseListener selection = new MouseAdapter();
     private String name, pw;
 
     public ClientGUI(String host, int port){
         super(host, port);
         this.gui = this;
 
-        this.buttonPanel = new JPanel();
-        this.layout = new GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        this.layout.setAutoCreateGaps(true);
-        this.layout.setAutoCreateContainerGaps(true);
-        
+        this.layout = new CardLayout();
+        this.textLayout = new CardLayout();
+
+        this.cards = new JPanel(this.layout);
+        this.textBox = new JPanel(this.textLayout);
+
         try{
             // Initial panel
+            this.buttonPanel = new JPanel();
             this.text = new JTextArea("");
             this.text.setEditable(false);
             this.register = new JButton("New User");
@@ -47,40 +60,21 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
             e.printStackTrace();
         }
 
-        this.layout.setHorizontalGroup(layout.createSequentialGroup()
-                    .addGroup(layout.createParallelGroup()
-                        .addComponent(buttonPanel)
-                        .addComponent(loginPanel)
-                        .addComponent(registerPanel)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(runningPanel))
-                        .addComponent(users)
-                 //   .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                        .addComponent(chatPanel))
-                  //      .addComponent(history))
-                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.CENTER)
-                        .addComponent(text))
-        );
+        this.cards.add(this.buttonPanel, BUTTONPANEL);
+        this.cards.add(this.registerPanel, REGISTERPANEL);
+        this.cards.add(this.loginPanel, LOGINPANEL);
+        this.cards.add(this.runningPanel, RUNNINGPANEL);
+        this.cards.add(this.chatPanel, CHATPANEL);
+        this.cards.add(this.users, USERS);
+        this.textBox.add(this.text, TEXT);
+       // this.active.add(this.history, HISTORY);
         
-        this.layout.setVerticalGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup()
-                    .addComponent(buttonPanel)
-                //    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                        .addComponent(registerPanel)
-                        .addComponent(loginPanel)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(runningPanel))
-                  //  .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                        .addComponent(users)
-                        .addComponent(chatPanel))
-                    //    .addComponent(history))
-                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.CENTER)
-                        .addComponent(text))
-        );
-        
-        this.setSize(400, 250);
-        this.layout.setHonorsVisibility(true);
+        this.setSize(1000, 750);
+       // this.layout.setHonorsVisibility(true);
         connect();
+        this.add(this.cards, BorderLayout.CENTER);
+        this.add(this.textBox, BorderLayout.NORTH);
+        this.pack();
         this.setVisible(true);
     }
     
@@ -92,24 +86,25 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         try {
             Object source = e.getSource();
             if (source == this.register) {
-                this.buttonPanel.setVisible(false);
-                this.registerPanel.setVisible(true);
-                this.layout.replace(this.buttonPanel, this.registerPanel);
+                this.layout.show(cards, REGISTERPANEL);
             } else if (source == this.login) {
                 this.sout.writeUTF("LOGIN");
                 this.sout.flush();
-                this.loginPanel.setVisible(true);
-                this.buttonPanel.setVisible(false);
-                this.layout.replace(this.buttonPanel, this.loginPanel);
+                this.layout.show(cards, LOGINPANEL);
             } else if (source == this.logout) {
-                //logout();
-                this.layout.replace(this.runningPanel, this.buttonPanel);
-                this.chatPanel.setVisible(false);
-                this.users.setVisible(false);
-                this.history.setVisible(false);
-                this.buttonPanel.setVisible(true);
+                this.sout.writeUTF("LOGOUT");
+                this.sout.flush();
+                this.layout.show(cards, BUTTONPANEL);
             } else if (source == this.displayUsers) {
-                this.users.setVisible(true);
+                String name = new String();
+                this.sout.writeUTF("USERS");
+                this.sout.flush();
+                name = this.sin.readUTF();
+                while(!name.equals("DONE")) {
+                    this.listModel.addElement(name);
+                    name = this.sin.readUTF();
+                }
+                this.layout.show(cards, USERS);
                 // userList();
             } else if (source == this.enter) {
                 this.sout.writeUTF("REGISTER");
@@ -124,9 +119,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
                     System.out.println("Registered" + this.name + "\n");
                     this.username.setText("Enter username: ");
                     this.password.setText("Enter password: ");
-                    this.registerPanel.setVisible(false);
-                    this.runningPanel.setVisible(true);
-                    this.layout.replace(this.registerPanel, this.runningPanel);
+                    this.layout.show(this.cards, RUNNINGPANEL);
                 }
             } else if (source == this.login2){
                 try{
@@ -140,9 +133,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
                     append("Logged in as " + this.name + "\n");
                     this.username2.setText("Enter username: ");
                     this.password2.setText("Enter password: ");
-                    this.loginPanel.setVisible(false);
-                    this.runningPanel.setVisible(true);
-                    this.layout.replace(this.loginPanel, this.runningPanel);
+                    this.layout.show(this.cards, RUNNINGPANEL);
                 }
             }
         }
@@ -164,7 +155,6 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         this.registerPanel.add(this.username);
         this.registerPanel.add(this.password);
         this.registerPanel.add(this.enter);
-        this.registerPanel.setVisible(false);
     }
 
     public void loginScreen(){
@@ -180,7 +170,6 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         this.loginPanel.add(this.username2);
         this.loginPanel.add(this.password2);
         this.loginPanel.add(this.login2);
-        this.loginPanel.setVisible(false);
     }
 
     public void runningScreen() {
@@ -192,7 +181,6 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         this.displayUsers.addActionListener(this);
         this.runningPanel.add(this.logout);
         this.runningPanel.add(this.displayUsers);
-        this.runningPanel.setVisible(false);
     }
 
     public void chatScreen(){
@@ -214,17 +202,17 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         this.chatPanel.add(this.send);
         this.chatPanel.add(this.clear);
         this.chatPanel.add(this.exit);
-        this.chatPanel.setVisible(false);
     }
 
     public void usersScreen(){
-        this.onlineUsers = new JList<String>();
+        this.listModel = new DefaultListModel();
+        this.onlineUsers = new JList<String>(this.listModel);
         this.onlineUsers.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         this.onlineUsers.setLayoutOrientation(JList.VERTICAL);
         this.onlineUsers.setVisibleRowCount(10);
+        //this.onlineUsers.addMouseListener(selection);
         this.users = new JScrollPane(this.onlineUsers);
         this.onlineUsers.addListSelectionListener(this);
-        this.users.setVisible(false);
     }
 
     public boolean registerUser(String name, String pw){
