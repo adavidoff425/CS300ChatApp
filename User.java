@@ -74,6 +74,17 @@ public class User{
         msg = user.username + ": " + msg;
         this.chatHistory.add(msg);
     }
+
+    public boolean writeHistory() throws IOException{
+        if(chatHistory.isEmpty())
+            return false;
+        for(String msgs : this.chatHistory){
+            this.writer.write(msgs);
+            this.writer.flush();
+        }
+        this.chatHistory.clear();
+        return true;
+    }
     
     public boolean find(String name){
         return this.username.equals(name);

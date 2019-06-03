@@ -67,7 +67,8 @@ public class Server {
             try {
                 DataInputStream in = new DataInputStream(server.getInputStream());
                 DataOutputStream out = new DataOutputStream(server.getOutputStream());
-                Thread newClient = new ClientThread(server, in, out);
+                ClientThread newClient = new ClientThread(server, in, out);
+                this.clients.add(newClient);
                 newClient.start();
             }
             catch(Exception e) {
@@ -120,17 +121,16 @@ public class Server {
     }
 
     private class ClientThread extends Thread {
-        private User user;
+        private User user, with;
         final private Socket clientSocket;
         final private DataInputStream sin;
         final private DataOutputStream sout;
-       // final private ClientGUI gui;
         private boolean connected;
 
         public ClientThread(Socket socket, DataInputStream in, DataOutputStream out) throws ClassNotFoundException {
             this.clientSocket = socket;
-            this.sin = in;
-            this.sout = out;
+            this.sin = new DataInputStream(in);
+            this.sout = new DataOutputStream(out);
         }
 
         public synchronized boolean listen() throws IOException{
@@ -162,9 +162,10 @@ public class Server {
             }
 
             else if(action.equals("SENDMSG")) {
-                String usr = this.sin.readUTF();
-                String msg = this.sin.readUTF();
-                User to = null;
+                String usr = new String();
+                String msg = new String();
+                usr = this.sin.readUTF();
+                msg = this.sin.readUTF();
                 for (User u : users) {
                     if (u.find(usr)) {
                         u.add_msg(this.user, msg);
@@ -175,17 +176,41 @@ public class Server {
                 return false;
             }
 
+            else if(action.equals("BROADCAST")) {
+                String msg = new String();
+                while (!msg.equals("SENDMSG"))
+                    msg = this.sin.readUTF();
+                this.sin.readUTF();
+                msg = this.sin.readUTF();
+                if(!msg.equals("")) {
+                    for (ClientThread ct : clients) {
+                        if (ct == this)
+                            continue;
+                        ct.getBroadcast(msg);
+                    }
+                }
+            }
+
             else if(action.equals("LOGOUT")) {
                 this.user.logout();
-                // Refresh all user lists
+                clients.remove(this);
+                this.sout.writeUTF("REFRESH");
+                this.sout.flush();
                 return false;
+            }
+
+            else if(action.equals("EXIT")){
+                if(this.user.writeHistory()){
+                    this.sout.writeUTF("DONE");
+                    this.sout.flush();
+                }
             }
 
             return true;
         }
 
         @Override
-        public void run() {
+        public synchronized void run() {
             if(!clients.contains(this))
                 clients.add(this);
             this.connected = true;
@@ -252,6 +277,26 @@ public class Server {
                     return;
                 }
             }
+
+            String logout_msg = new String();
+            logout_msg = this.user.get_name() + " logged off\n";
+            for(ClientThread ct : clients){
+                if(ct == this)
+                    continue;
+                try {
+                    ct.getBroadcast(logout_msg);
+                }
+                catch(IOException e){
+                    System.out.println("Error broadcasting from server\n");
+                }
+            }
+        }
+
+        public synchronized void getBroadcast(String msg) throws IOException{
+            this.sout.writeUTF("BROADCAST");
+            this.sout.flush();
+            this.sout.writeUTF(msg);
+            this.sout.flush();
         }
     }
 
