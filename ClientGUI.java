@@ -8,7 +8,7 @@ import javax.swing.event.*;
 
 class ClientGUI extends Client implements ListSelectionListener, ActionListener{
     private CardLayout layout, textLayout;
-    private JPanel cards, active, textBox;
+    private JPanel cards, textBox, defaultTab;
     private JButton register, login, login2, logout, displayUsers, displayHistory, enter, send, exit, exit2, clear, start;
     private JTextArea chat, msg, text, allmsgs;
     private JTextField username, password, username2, password2;
@@ -17,15 +17,15 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
     private DefaultListModel listModel;
     private JScrollPane users, history, chatScroll;
     private JPanel buttonPanel, registerPanel, loginPanel, runningPanel, chatPanel, historyPanel, userPanel;
+    private JTabbedPane chatTabs;
     final static String BUTTONPANEL = "Chat Application";
     final static String REGISTERPANEL = "Register New User";
     final static String LOGINPANEL = "Please Login";
     final static String RUNNINGPANEL = "Chat App Running";
-    final static String CHATPANEL = "Active Chat";
+    final static String CHATPANEL = "Chat Area";
     final static String USERS = "Active Users";
     final static String HISTORY = "User Chat History";
     final static String TEXT = "Message Area";
-    final static String ACTIVE = "Logged into Application";
     //private MouseListener selection = new MouseAdapter();
     private String name, pw, currentUser;
 
@@ -38,6 +38,8 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
 
         this.cards = new JPanel(this.layout);
         this.textBox = new JPanel(this.textLayout);
+        this.chatTabs = new JTabbedPane();
+        this.chatTabs.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
 
         try{
             // Initial panel
@@ -50,11 +52,11 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
             this.login.addActionListener(this);
             this.buttonPanel.add(this.register);
             this.buttonPanel.add(this.login);
+            this.defaultTab = new JPanel();
 
             registerScreen();
             loginScreen();
             runningScreen();
-            chatScreen();
             usersScreen();
             historyScreen();
         }
@@ -66,15 +68,16 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         this.cards.add(this.registerPanel, REGISTERPANEL);
         this.cards.add(this.loginPanel, LOGINPANEL);
         this.cards.add(this.runningPanel, RUNNINGPANEL);
-        this.cards.add(this.chatScroll, CHATPANEL);
         this.cards.add(this.users, USERS);
         this.cards.add(this.historyPanel, HISTORY);
         this.textBox.add(this.text, TEXT);
+        this.chatTabs.add(this.defaultTab);
 
         connect();
         this.add(this.cards, BorderLayout.CENTER);
         this.add(this.textBox, BorderLayout.NORTH);
-        this.pack();
+        this.add(this.chatTabs, BorderLayout.EAST);
+      //  this.pack();
         this.setSize(1000, 750);
         this.setVisible(true);
     }
@@ -149,8 +152,9 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
                     this.sout.writeUTF(this.with.getText());
                     this.sout.flush();
                 }
-                this.layout.show(this.cards, CHATPANEL);
-            } else if (source == this.send){
+                JScrollPane tab = newChat(this.with.getText());
+                this.chatTabs.add(this.with.getText(), tab);
+       /*     } else if (source == this.send){
                 this.sout.writeUTF("SENDMSG");
                 this.sout.flush();
                 this.sout.writeUTF(this.with.getText());
@@ -161,14 +165,14 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
                 else
                     message = this.name + ": " + message;
                 this.sout.writeUTF(message);
-                this.sout.flush();
+                this.sout.flush();*/
 
-            } else if (source == this.exit){
+            } else if (source == this.exit) {
                 this.sout.writeUTF("EXIT");
                 this.sout.flush();
                 this.layout.show(this.cards, RUNNINGPANEL);
-
-            } else if (source == this.clear){
+            }
+        /*    } else if (source == this.clear){
                 this.msg.setText("Enter Message");
 
             } else if (source == this.exit2){
@@ -181,7 +185,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
                     this.chat.setText("");
                     this.layout.show(this.cards, RUNNINGPANEL);
                 }
-            }
+            }*/
         }
         catch(IOException ioe){
             append("Error sending action information to server\n");
@@ -235,28 +239,69 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         this.runningPanel.add(this.displayUsers);
     }
 
-    public void chatScreen(){
-        this.chat = new JTextArea(20, 20);
-        this.msg = new JTextArea("Enter Message", 20, 20);
-        this.send = new JButton("Send");
-        this.clear = new JButton("Clear");
-        this.exit = new JButton("End Chat");
-        this.with = new JLabel("");
-        this.send.addActionListener(this);
-        this.clear.addActionListener(this);
-        this.exit.addActionListener(this);
-        this.chat.setEditable(false);
-        this.msg.setEditable(true);
-        this.chat.setLineWrap(true);
-        this.msg.setLineWrap(true);
-        this.chatPanel = new JPanel();
-        this.chatPanel.add(this.msg);
-        this.chatPanel.add(this.chat);
-        this.chatPanel.add(this.with);
-        this.chatPanel.add(this.send);
-        this.chatPanel.add(this.clear);
-        this.chatPanel.add(this.exit);
-        this.chatScroll = new JScrollPane(this.chatPanel);
+    public JScrollPane newChat(String chatWith){
+        if(chatWith.equals(""))
+            chatWith = "ALL";
+        JPanel panel = new JPanel();
+        JTextArea chat = new JTextArea(20, 20);
+        JTextArea msg = new JTextArea("Enter Message", 20, 20);
+        JButton send = new JButton("Send");
+        JButton clear = new JButton("Clear");
+        JButton exit = new JButton("End Chat");
+        JLabel with = new JLabel(chatWith);
+
+        send.addActionListener(e -> {
+            try{
+                this.sout.writeUTF("SENDMSG");
+                this.sout.flush();
+                this.sout.writeUTF(with.getText());
+                this.sout.flush();
+                String message = new String(msg.getText());
+                if(message.equals("Enter Message"))
+                    message = "";
+                else
+                    message = this.name + ": " + message;
+                this.sout.writeUTF(message);
+                this.sout.flush();
+            }
+            catch(IOException ioe){
+                append("Send button error\n");
+            }
+        });
+
+        clear.addActionListener(e -> {
+            msg.setText("Enter Message");
+        });
+
+        exit.addActionListener(e -> {
+            try {
+                this.sout.writeUTF("WRITE");
+                this.sout.flush();
+                String done = new String(this.sin.readUTF());
+                if(done.equals("DONE")) {
+                    int index = this.chatTabs.indexOfTab(with.getText());
+                    if(index != -1)
+                        this.chatTabs.remove(index);
+                }
+            }
+            catch(IOException ioe){
+                append("Exit button error\n");
+            }
+        });
+
+        chat.setEditable(false);
+        msg.setEditable(true);
+        chat.setLineWrap(true);
+        msg.setLineWrap(true);
+
+        panel.add(msg);
+        panel.add(chat);
+        panel.add(with);
+        panel.add(send);
+        panel.add(clear);
+        panel.add(exit);
+        JScrollPane chatScroll = new JScrollPane(panel);
+        return chatScroll;
     }
 
     public void usersScreen(){
