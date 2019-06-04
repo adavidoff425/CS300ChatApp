@@ -76,7 +76,7 @@ public class User{
     }
 
     public boolean writeHistory() throws IOException{
-        if(chatHistory.isEmpty())
+        if(this.chatHistory.isEmpty())
             return false;
         for(String msgs : this.chatHistory){
             this.writer.write(msgs);
@@ -90,6 +90,4 @@ public class User{
         return this.username.equals(name);
     }
 
-    public String getPass() {return this.password;}
-    
 }

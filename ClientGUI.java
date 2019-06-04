@@ -6,18 +6,21 @@ import java.awt.event.*;
 import javax.swing.*;
 import javax.swing.event.*;
 
-class ClientGUI extends Client implements ListSelectionListener, ActionListener{
+class ClientGUI extends Client implements ListSelectionListener, ActionListener, ChangeListener{
     private CardLayout layout, textLayout;
     private JPanel cards, textBox, defaultTab;
     private JButton register, login, login2, logout, displayUsers, displayHistory, enter, send, exit, exit2, clear, start;
     private JTextArea chat, msg, text, allmsgs;
     private JTextField username, password, username2, password2;
-    private JLabel with;
     private JList<String> onlineUsers;
     private DefaultListModel listModel;
     private JScrollPane users, history, chatScroll;
     private JPanel buttonPanel, registerPanel, loginPanel, runningPanel, chatPanel, historyPanel, userPanel;
     private JTabbedPane chatTabs;
+    private ArrayList<JButton> sends, clears, exits;
+    private ArrayList<JLabel> withs;
+    private ArrayList<JTextArea> msgs, chats;
+    private int tab;
     final static String BUTTONPANEL = "Chat Application";
     final static String REGISTERPANEL = "Register New User";
     final static String LOGINPANEL = "Please Login";
@@ -40,6 +43,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         this.textBox = new JPanel(this.textLayout);
         this.chatTabs = new JTabbedPane();
         this.chatTabs.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
+        this.chatTabs.addChangeListener(this);
 
         try{
             // Initial panel
@@ -72,12 +76,18 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         this.cards.add(this.historyPanel, HISTORY);
         this.textBox.add(this.text, TEXT);
         this.chatTabs.add(this.defaultTab);
+        this.sends = new ArrayList<>();
+        this.clears = new ArrayList<>();
+        this.exits = new ArrayList<>();
+        this.withs = new ArrayList<>();
+        this.msgs = new ArrayList<>();
+        this.chats = new ArrayList<>();
 
         connect();
         this.add(this.cards, BorderLayout.CENTER);
         this.add(this.textBox, BorderLayout.NORTH);
         this.add(this.chatTabs, BorderLayout.EAST);
-      //  this.pack();
+        this.pack();
         this.setSize(1000, 750);
         this.setVisible(true);
     }
@@ -85,31 +95,45 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
     public void append(String string){
         this.text.append(string);
     }
-    
+
     public void actionPerformed(ActionEvent e) {
         try {
             Object source = e.getSource();
             if (source == this.register) {
                 this.layout.show(cards, REGISTERPANEL);
+
             } else if (source == this.login) {
                 this.sout.writeUTF("LOGIN");
                 this.sout.flush();
                 this.layout.show(cards, LOGINPANEL);
+
             } else if (source == this.logout) {
                 this.sout.writeUTF("LOGOUT");
                 this.sout.flush();
                 this.layout.show(cards, BUTTONPANEL);
+
             } else if (source == this.displayUsers) {
                 String name = new String();
                 this.sout.writeUTF("USERS");
                 this.sout.flush();
                 name = this.sin.readUTF();
-                while(!name.equals("DONE")) {
+                while (!name.equals("DONE")) {
                     this.listModel.addElement(name);
                     name = this.sin.readUTF();
                 }
                 this.layout.show(cards, USERS);
-                // userList();
+
+            } else if (source == this.displayHistory){
+                String msg = new String();
+                this.sout.writeUTF("HISTORY");
+                this.sout.flush();
+                msg = this.sin.readUTF();
+                while(!msg.equals("DONE")){
+                    this.allmsgs.append(msg);
+                    msg = this.sin.readUTF();
+                }
+                this.layout.show(cards, HISTORY);
+
             } else if (source == this.enter) {
                 this.sout.writeUTF("REGISTER");
                 this.sout.flush();
@@ -125,6 +149,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
                     this.password.setText("Enter password: ");
                     this.layout.show(this.cards, RUNNINGPANEL);
                 }
+
             } else if (source == this.login2){
                 try{
                     this.name = new String(this.username2.getText());
@@ -139,59 +164,62 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
                     this.password2.setText("Enter password: ");
                     this.layout.show(this.cards, RUNNINGPANEL);
                 }
+
             } else if (source == this.start){
-                if(this.currentUser.equals(this.name) || this.currentUser == null) {
+                if(this.currentUser.equals(this.name) || this.onlineUsers.isSelectionEmpty()) {
                     this.sout.writeUTF("BROADCAST");
                     this.sout.flush();
                 }
                 else {
-                    this.with.setText(this.currentUser);
-                    this.currentUser = null;
                     this.sout.writeUTF("START");
                     this.sout.flush();
-                    this.sout.writeUTF(this.with.getText());
+                    this.sout.writeUTF(this.currentUser);
                     this.sout.flush();
                 }
-                JScrollPane tab = newChat(this.with.getText());
-                this.chatTabs.add(this.with.getText(), tab);
-       /*     } else if (source == this.send){
+                JScrollPane tab = newChat(this.currentUser);
+                this.chatTabs.add(this.currentUser, tab);
+                this.currentUser = null;
+
+            } else if (source == this.exit2) {
+                this.sout.writeUTF("EXIT");
+                this.sout.flush();
+                this.layout.show(this.cards, RUNNINGPANEL);
+
+            } else if (source == this.sends.get(this.tab)){
                 this.sout.writeUTF("SENDMSG");
                 this.sout.flush();
-                this.sout.writeUTF(this.with.getText());
+                this.sout.writeUTF(this.withs.get(this.tab).getText());
                 this.sout.flush();
-                String message = new String(this.msg.getText());
+                String message = new String(this.msgs.get(this.tab).getText());
                 if(message.equals("Enter Message"))
                     message = "";
                 else
                     message = this.name + ": " + message;
                 this.sout.writeUTF(message);
-                this.sout.flush();*/
-
-            } else if (source == this.exit) {
-                this.sout.writeUTF("EXIT");
                 this.sout.flush();
-                this.layout.show(this.cards, RUNNINGPANEL);
-            }
-        /*    } else if (source == this.clear){
-                this.msg.setText("Enter Message");
 
-            } else if (source == this.exit2){
+            } else if (source == this.clears.get(this.tab)){
+                this.msgs.get(this.tab).setText("Enter Message");
+
+            } else if (source == this.exits.get(this.tab)){
                 this.sout.writeUTF("WRITE");
                 this.sout.flush();
                 String done = new String(this.sin.readUTF());
                 if(done.equals("DONE")) {
-                    this.with = null;
-                    this.msg.setText("Enter Message");
-                    this.chat.setText("");
-                    this.layout.show(this.cards, RUNNINGPANEL);
+                    this.withs.remove(this.tab);
+                    this.msgs.remove(this.tab);
+                    this.sends.remove(this.tab);
+                    this.clears.remove(this.tab);
+                    this.exits.remove(this.tab);
+                    this.chatTabs.remove(this.tab + 1);
                 }
-            }*/
+            }
         }
         catch(IOException ioe){
             append("Error sending action information to server\n");
         }
         try {
-            listen_for_broadcast();
+            listen();
         }
         catch(IOException be){
             append("Error listening on server\n");
@@ -235,8 +263,10 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         this.displayHistory = new JButton("Chat History");
         this.logout.addActionListener(this);
         this.displayUsers.addActionListener(this);
+        this.displayHistory.addActionListener(this);
         this.runningPanel.add(this.logout);
         this.runningPanel.add(this.displayUsers);
+        this.runningPanel.add(this.displayHistory);
     }
 
     public JScrollPane newChat(String chatWith){
@@ -250,44 +280,15 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         JButton exit = new JButton("End Chat");
         JLabel with = new JLabel(chatWith);
 
-        send.addActionListener(e -> {
-            try{
-                this.sout.writeUTF("SENDMSG");
-                this.sout.flush();
-                this.sout.writeUTF(with.getText());
-                this.sout.flush();
-                String message = new String(msg.getText());
-                if(message.equals("Enter Message"))
-                    message = "";
-                else
-                    message = this.name + ": " + message;
-                this.sout.writeUTF(message);
-                this.sout.flush();
-            }
-            catch(IOException ioe){
-                append("Send button error\n");
-            }
-        });
-
-        clear.addActionListener(e -> {
-            msg.setText("Enter Message");
-        });
-
-        exit.addActionListener(e -> {
-            try {
-                this.sout.writeUTF("WRITE");
-                this.sout.flush();
-                String done = new String(this.sin.readUTF());
-                if(done.equals("DONE")) {
-                    int index = this.chatTabs.indexOfTab(with.getText());
-                    if(index != -1)
-                        this.chatTabs.remove(index);
-                }
-            }
-            catch(IOException ioe){
-                append("Exit button error\n");
-            }
-        });
+        send.addActionListener(this);
+        clear.addActionListener(this);
+        exit.addActionListener(this);
+        this.withs.add(with);
+        this.msgs.add(msg);
+        this.sends.add(send);
+        this.clears.add(clear);
+        this.exits.add(exit);
+        this.chats.add(chat);
 
         chat.setEditable(false);
         msg.setEditable(true);
@@ -316,7 +317,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         this.userPanel = new JPanel();
         this.userPanel.add(this.onlineUsers);
         this.userPanel.add(this.start);
-        //this.onlineUsers.addMouseListener(selection);
+        this.currentUser = new String();
         this.users = new JScrollPane(this.userPanel);
     }
 
@@ -347,17 +348,61 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
     }
 
     public void valueChanged(ListSelectionEvent event){
-        this.currentUser = new String(this.onlineUsers.getSelectedValue());
+        this.currentUser =  this.onlineUsers.getSelectedValue();
     }
 
-    public void listen_for_broadcast() throws IOException{
+    public void listen() throws IOException{
         String msg = new String();
         while(connected){
-            while(!msg.equals("BROADCAST")){
+            while(!msg.equals("BROADCAST") && !msg.equals("CHAT") && !msg.equals("NEWMSG")){
                 msg = this.sin.readUTF();
             }
-            msg = this.sin.readUTF();
-            append(msg);
+            if(msg.equals("BROADCAST")) {
+                msg = this.sin.readUTF();
+                append(msg);
+            }
+            else if(msg.equals("CHAT")){
+                msg = this.sin.readUTF();
+                if(msg.equals(this.name)) {
+                    this.sout.writeBoolean(true);
+                    this.sout.flush();
+                    msg = this.sin.readUTF();
+                    append("New chat starting with " + msg + "\n");
+                    JScrollPane tab = newChat(msg);
+                    this.chatTabs.add(msg, tab);
+                }
+                else{
+                    this.sout.writeBoolean(false);
+                    this.sout.flush();
+                    this.sin.readUTF();
+                }
+            }
+            else if(msg.equals("NEWMSG")){
+                int index = -1;
+                String user = new String();
+                user = this.sin.readUTF();
+                if(user.equals(this.name)){
+                    user = this.sin.readUTF();
+                    msg = this.sin.readUTF();
+                    for(JLabel w : withs) {
+                        if (w.getText().equals(user)) {
+                            index = this.withs.indexOf(w);
+                            break;
+                        }
+                    }
+                    if(index > -1)
+                        this.chats.get(index).append(user + ": " + msg + "\n");
+                }
+                else{
+                    this.sin.readUTF();
+                    this.sin.readUTF();
+                }
+            }
         }
     }
+
+    public void stateChanged(ChangeEvent e){
+        this.tab = this.chatTabs.getSelectedIndex() - 1;
+    }
+
 }

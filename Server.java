@@ -121,7 +121,7 @@ public class Server {
     }
 
     private class ClientThread extends Thread {
-        private User user, with;
+        private User user;
         final private Socket clientSocket;
         final private DataInputStream sin;
         final private DataOutputStream sout;
@@ -137,6 +137,7 @@ public class Server {
             String action = new String();
 
             action = this.sin.readUTF();
+            System.out.println(action);
             if (action.equals("USERS")){
                 for(User u : users){
                     if(u.isLoggedIn()){
@@ -168,6 +169,14 @@ public class Server {
                 msg = this.sin.readUTF();
                 for (User u : users) {
                     if (u.find(usr)) {
+                        this.sout.writeUTF("NEWMSG");
+                        this.sout.flush();
+                        this.sout.writeUTF(usr);
+                        this.sout.flush();
+                        this.sout.writeUTF(this.user.get_name());
+                        this.sout.flush();
+                        this.sout.writeUTF(msg);
+                        this.sout.flush();
                         u.add_msg(this.user, msg);
                         this.user.add_msg(this.user, msg);
                         listen();
@@ -177,17 +186,31 @@ public class Server {
             }
 
             else if(action.equals("BROADCAST")) {
+                System.out.println("188");
                 String msg = new String();
                 while (!msg.equals("SENDMSG"))
                     msg = this.sin.readUTF();
                 this.sin.readUTF();
                 msg = this.sin.readUTF();
+                System.out.println("194");
                 if(!msg.equals("")) {
                     for (ClientThread ct : clients) {
-                        if (ct == this)
-                            continue;
                         ct.getBroadcast(msg);
                     }
+                }
+            }
+
+            else if(action.equals("START")){
+                String usr = new String();
+                usr = this.sin.readUTF();
+                this.sout.writeUTF("CHAT");
+                this.sout.flush();
+                this.sout.writeUTF(this.user.get_name());
+                this.sout.flush();
+                Boolean correct = this.sin.readBoolean();
+                if(correct){
+                    this.sout.writeUTF(usr);
+                    this.sout.flush();
                 }
             }
 
@@ -293,6 +316,7 @@ public class Server {
         }
 
         public synchronized void getBroadcast(String msg) throws IOException{
+            System.out.println("318");
             this.sout.writeUTF("BROADCAST");
             this.sout.flush();
             this.sout.writeUTF(msg);
