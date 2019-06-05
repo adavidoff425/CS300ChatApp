@@ -22,7 +22,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
     private ArrayList<JLabel> withs;
     private ArrayList<JTextArea> msgs, chats;
     private int tab;
-    private boolean doneListening;
+ //   private boolean doneListening;
     final static String BUTTONPANEL = "Chat Application";
     final static String REGISTERPANEL = "Register New User";
     final static String LOGINPANEL = "Please Login";
@@ -31,7 +31,6 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
     final static String USERS = "Active Users";
     final static String HISTORY = "User Chat History";
     final static String TEXT = "Message Area";
-    //private MouseListener selection = new MouseAdapter();
     private String name, pw, currentUser;
 
     public ClientGUI(String host, int port) throws ClassNotFoundException {
@@ -92,8 +91,45 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
         this.pack();
         this.setSize(1000, 750);
         this.setVisible(true);
-        this.doneListening = false;
-        //   new ListenThread(this.clientSocket, this.sin, this.sout).start();
+     //   //this.doneListening = true;
+
+        Thread ListenThread = new Thread(() -> {
+        while (true) {
+            if (connected) {
+                try {
+                    DataInputStream listen;
+                    Socket listenSocket;
+                    String action;
+
+                    listen = new DataInputStream(sin);
+                    listenSocket = new Socket(server_address, port);
+                    action = new String();
+
+                    System.out.println("Listening");
+
+                    action = listen.readUTF();
+                    while (!action.equals("BROADCAST") && !action.equals("CHAT") && !action.equals("NEWMSG")) {
+                        action = listen.readUTF();
+                        System.out.println(action);
+                    }
+                    //  doneListening = false;
+                    listenToServer(action);
+                    listenSocket.close();
+                    listen.close();
+
+                } catch (IOException e) {
+                    System.out.println("Error in ListenThread");
+                }
+            }
+            try {
+                Thread.sleep(100);
+            } catch (Exception se) {
+            }
+        }
+    });
+    ListenThread.setDaemon(true);
+    ListenThread.start();
+
     }
 
     public void append(String string) {
@@ -101,9 +137,9 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
     }
 
     public void actionPerformed(ActionEvent e) {
-        // this.doneListening = true;      // Stops ListenThread so data i/o doesn't interfere
+      //  while(!doneListening)   // Wait until done listening
+        //    ;
         try {
-            try {
                 Object source = e.getSource();
                 if (source == this.register) {
                     this.layout.show(cards, REGISTERPANEL);
@@ -118,7 +154,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
                     this.sout.writeUTF("LOGOUT");
                     this.sout.flush();
                     this.layout.show(cards, BUTTONPANEL);
-                    this.doneListening = true;
+                  //  //this.doneListening = true;
 
                 } else if (source == this.displayUsers) {
                     String name = new String();
@@ -130,8 +166,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
                         name = this.sin.readUTF();
                     }
                     this.layout.show(cards, USERS);
-                    this.doneListening = false;
-                    new ListenThread(clientSocket, sin, sout).start();
+                    //this.doneListening = false;
 
                 } else if (source == this.displayHistory) {
                     String msg = new String();
@@ -143,8 +178,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
                         msg = this.sin.readUTF();
                     }
                     this.layout.show(cards, HISTORY);
-                    this.doneListening = false;
-                    new ListenThread(clientSocket, sin, sout).start();
+                    //this.doneListening = false;
 
                 } else if (source == this.enter) {
                     this.sout.writeUTF("REGISTER");
@@ -190,14 +224,13 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
                     this.chatTabs.add(this.currentUser, tab);
                     this.currentUser = null;
                     this.layout.show(this.cards, RUNNINGPANEL);
-                    this.doneListening = false;
+                    //this.doneListening = false;
 
                 } else if (source == this.exit2) {
                     this.sout.writeUTF("EXIT");
                     this.sout.flush();
                     this.layout.show(this.cards, RUNNINGPANEL);
-                    this.doneListening = false;
-                    new ListenThread(clientSocket, sin, sout).start();
+                    //this.doneListening = false;
 
                 } else if (source == this.sends.get(this.tab)) {
                     this.sout.writeUTF("SENDMSG");
@@ -211,11 +244,11 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
                         message = this.name + ": " + message;
                     this.sout.writeUTF(message);
                     this.sout.flush();
+                    //this.doneListening = false;
 
                 } else if (source == this.clears.get(this.tab)) {
                     this.msgs.get(this.tab).setText("Enter Message");
-                    this.doneListening = false;
-                    new ListenThread(clientSocket, sin, sout).start();
+                    //this.doneListening = false;
 
                 } else if (source == this.exits.get(this.tab)) {
                     this.sout.writeUTF("WRITE");
@@ -228,11 +261,9 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
                         this.clears.remove(this.tab);
                         this.exits.remove(this.tab);
                         this.chatTabs.remove(this.tab + 1);
-                        this.doneListening = false;
-                        new ListenThread(clientSocket, sin, sout).start();
+                        //this.doneListening = false;
                     }
                 }
-            } catch(ClassNotFoundException cnf) {}
         } catch (IOException ioe) {
             append("Error sending action information to server\n");
         }
@@ -353,11 +384,6 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
     public boolean registerUser(String name, String pw) {
 
         if (register(name, pw)) {
-            try {
-                new ListenThread(this.clientSocket, this.sin, this.sout).start();
-            } catch (Exception le) {
-                append("Error listening on server\n");
-            }
             return true;
         }
         return false;
@@ -365,11 +391,6 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
 
     public boolean loginAttempt(String name, String pw) {
         if (login(name, pw)) {
-            try {
-                new ListenThread(this.clientSocket, this.sin, this.sout).start();
-            } catch (Exception le) {
-                append("Error listening on server\n");
-            }
             return true;
         }
         return false;
@@ -392,11 +413,11 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
 
         System.out.println("Listening to server");
             try {
-                while (!doneListening) {
+                if(this.connected) {
                     System.out.println(action);
                     if (action.equals("BROADCAST") || action.equals("CHAT") || action.equals("NEWMSG")) {
                         listen(action, lIn, lOut);
-                        doneListening = true;
+                     //   doneListening = true;
                     }
                 }
             } catch (IOException e) {
@@ -404,7 +425,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
             }
         }
 
-        public void listen(String msg, DataInputStream in, DataOutputStream out){
+        public void listen(String msg, DataInputStream in, DataOutputStream out) throws IOException{
             System.out.println("listening");
             if (msg.equals("BROADCAST")) {
                 msg = in.readUTF();
@@ -470,4 +491,6 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
         }
 
     }
+
+
 }

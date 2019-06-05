@@ -55,32 +55,47 @@ public class Server {
         }
 
         Socket server = null;
-        this.running = true;
+        this.running = false;
         System.out.println("Waiting on clients to connect\n");
-        while (running) {
+        server = this.socket.accept();
+        DataInputStream in = new DataInputStream(server.getInputStream());
+        DataOutputStream out = new DataOutputStream(server.getOutputStream());
+        System.out.println("New client connected");
+        try {
+
+            ClientThread newClient = new ClientThread(server, in, out);
+            this.clients.add(newClient);
+            newClient.start();
+        } catch (Exception e) {
             try {
-                server = this.socket.accept();
-            } catch (IOException e) {
-                System.out.println("Error connecting socket\n");
+                server.close();
+            } catch (IOException ioe) {
+                System.out.println("Closing connection");
             }
-            System.out.println("New client connected");
-            try {
-                DataInputStream in = new DataInputStream(server.getInputStream());
-                DataOutputStream out = new DataOutputStream(server.getOutputStream());
-                ClientThread newClient = new ClientThread(server, in, out);
-                this.clients.add(newClient);
-                newClient.start();
-            }
-            catch(Exception e) {
-                try {
-                    server.close();
-                }
-                catch(IOException ioe){
-                    System.out.println("Closing connection");
-                }
-                System.out.println("Error assigning new thread");
-            }
+            System.out.println("Error assigning new thread");
         }
+
+        Thread serverThread = new Thread(() -> {
+            while (running) {
+                try {
+                    Socket newSocket = this.server.accept();
+                    DataInputStream in = new DataInputStream(server.getInputStream());
+                    DataOutputStream out = new DataOutputStream(server.getOutputStream());
+                    String action = in.readUTF();
+                    if (action.equals())
+                        String toSend = doAction(action); // Processes action and returns message code
+                    out.writeUTF(toSend);
+                    out.flush();
+                    newSocket.close();
+                } catch (IOException e) {
+                    System.out.println("Error connecting socket\n");
+                }
+
+            }
+        });
+
+        serverThread.setDaemon(true);
+        serverThread.start();
         // Server no longer running
         try {
             this.socket.close();
@@ -96,47 +111,10 @@ public class Server {
 
         } catch (Exception e) {
         }
+
     }
 
-    // Adds user object to list of objects
-    public User addUser(String name, String pw) throws IOException {
-        User newUser = new User(name, pw);
-        this.users.add(newUser);
-        this.usernames.add(name);
-        this.writer.write(name + "\n" + pw + "\n");
-        this.writer.flush();
-        return newUser;
-    }
-
-    public void getUsers() throws IOException {
-        String nextUser = new String();
-        while ((nextUser = this.reader.readLine()) != null) {
-            this.usernames.add(nextUser);
-            String nextPW = this.reader.readLine();
-            User newUser = new User(nextUser, nextPW);
-            users.add(newUser);
-        }
-        this.reader.close();
-        this.fileReader.close();
-    }
-
-    private class ClientThread extends Thread {
-        private User user;
-        final private Socket clientSocket;
-        final private DataInputStream sin;
-        final private DataOutputStream sout;
-        private boolean connected;
-
-        public ClientThread(Socket socket, DataInputStream in, DataOutputStream out) throws ClassNotFoundException {
-            this.clientSocket = socket;
-            this.sin = new DataInputStream(in);
-            this.sout = new DataOutputStream(out);
-        }
-
-        public synchronized boolean listen() throws IOException{
-            String action = new String();
-
-            action = this.sin.readUTF();
+    public synchronized String doAction(String action) throws IOException{
             System.out.println(action);
             if (action.equals("USERS")){
                 for(User u : users){
@@ -229,6 +207,43 @@ public class Server {
 
             return true;
         }
+
+    // Adds user object to list of objects
+    public User addUser(String name, String pw) throws IOException {
+        User newUser = new User(name, pw);
+        this.users.add(newUser);
+        this.usernames.add(name);
+        this.writer.write(name + "\n" + pw + "\n");
+        this.writer.flush();
+        return newUser;
+    }
+
+    public void getUsers() throws IOException {
+        String nextUser = new String();
+        while ((nextUser = this.reader.readLine()) != null) {
+            this.usernames.add(nextUser);
+            String nextPW = this.reader.readLine();
+            User newUser = new User(nextUser, nextPW);
+            users.add(newUser);
+        }
+        this.reader.close();
+        this.fileReader.close();
+    }
+
+    private class ClientThread extends Thread {
+        private User user;
+        final private Socket clientSocket;
+        final private DataInputStream sin;
+        final private DataOutputStream sout;
+        private boolean connected;
+
+        public ClientThread(Socket socket, DataInputStream in, DataOutputStream out) throws ClassNotFoundException {
+            this.clientSocket = socket;
+            this.sin = new DataInputStream(in);
+            this.sout = new DataOutputStream(out);
+        }
+
+
 
       //  @Override
         public synchronized void run() {

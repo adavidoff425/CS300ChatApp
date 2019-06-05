@@ -25,13 +25,13 @@ public class Client extends JFrame{
     }
 
     public boolean connect(){
-        try{
+      /*  try{
             this.clientSocket = new Socket(server_address, port);
         }
         catch(Exception e){
             this.gui.append("Connection error" + e + "\n");
             return false;
-        }
+        }*/
 
         this.connected = true;
         this.gui.append("Connected to " + this.clientSocket.getInetAddress() + ":" + this.clientSocket.getPort() + "\n");
