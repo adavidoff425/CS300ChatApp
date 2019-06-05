@@ -17,7 +17,7 @@ public class Server {
     public Server(int port) throws ClassNotFoundException, IOException {
         this.port = port;
         this.userfile = new File("users.txt");
-        if(!this.userfile.exists()) {
+        if (!this.userfile.exists()) {
             userfile.createNewFile();
             try {
                 this.fileReader = new FileReader(this.userfile);
@@ -27,23 +27,21 @@ public class Server {
                 System.out.println("Error setting up file read/write\n");
                 e.printStackTrace();
             }
-        }
-        else{
-            try{
+        } else {
+            try {
                 this.fileReader = new FileReader(this.userfile);
                 this.reader = new BufferedReader(fileReader);
                 this.writer = new FileWriter(this.userfile, true);
-            }
-            catch(Exception e){
+            } catch (Exception e) {
                 System.out.println("Error setting up file read/write\n");
                 e.printStackTrace();
             }
         }
-            try {
-                getUsers();
-            } catch (Exception gue) {
-                System.out.println("Error reading user file\n");
-            }
+        try {
+            getUsers();
+        } catch (Exception gue) {
+            System.out.println("Error reading user file\n");
+        }
         connect();
     }
 
@@ -67,15 +65,18 @@ public class Server {
             try {
                 DataInputStream in = new DataInputStream(server.getInputStream());
                 DataOutputStream out = new DataOutputStream(server.getOutputStream());
+                boolean check = in.readBoolean();
+                if (!check) {
+                    System.out.println("New listenThread connected\n");
+                    continue;
+                }
                 ClientThread newClient = new ClientThread(server, in, out);
                 this.clients.add(newClient);
                 newClient.start();
-            }
-            catch(Exception e) {
+            } catch (Exception e) {
                 try {
                     server.close();
-                }
-                catch(IOException ioe){
+                } catch (IOException ioe) {
                     System.out.println("Closing connection");
                 }
                 System.out.println("Error assigning new thread");
@@ -133,14 +134,14 @@ public class Server {
             this.sout = new DataOutputStream(out);
         }
 
-        public synchronized boolean listen() throws IOException{
+        public synchronized boolean listen() throws IOException {
             String action = new String();
 
             action = this.sin.readUTF();
             System.out.println(action);
-            if (action.equals("USERS")){
-                for(User u : users){
-                    if(u.isLoggedIn()){
+            if (action.equals("USERS")) {
+                for (User u : users) {
+                    if (u.isLoggedIn()) {
                         this.sout.writeUTF(u.get_name());
                         this.sout.flush();
                     }
@@ -148,91 +149,95 @@ public class Server {
                 this.sout.writeUTF("DONE");
                 this.sout.flush();
                 listen();
-            }
-
-            else if(action.equals("HISTORY")){
+            } else if (action.equals("HISTORY")) {
                 ArrayList<String> history = new ArrayList<>();
                 history = this.user.retrieve_chatHistory();
-                for(String msg : history){
+                for (String msg : history) {
                     this.sout.writeUTF(msg);
                     this.sout.flush();
                 }
                 this.sout.writeUTF("DONE");
                 this.sout.flush();
                 listen();
-            }
-
-            else if(action.equals("SENDMSG")) {
+            } else if (action.equals("SENDMSG")) {
                 String usr = new String();
                 String msg = new String();
                 usr = this.sin.readUTF();
                 msg = this.sin.readUTF();
-                for (User u : users) {
-                    if (u.find(usr)) {
-                        this.sout.writeUTF("NEWMSG");
-                        this.sout.flush();
-                        this.sout.writeUTF(usr);
-                        this.sout.flush();
-                        this.sout.writeUTF(this.user.get_name());
-                        this.sout.flush();
-                        this.sout.writeUTF(msg);
-                        this.sout.flush();
-                        u.add_msg(this.user, msg);
+                for (ClientThread ct : clients) {
+                    if (ct.user.find(usr)) {
+                        ct.sout.writeUTF("NEWMSG");
+                        ct.sout.flush();
+                        ct.sout.writeUTF(this.user.get_name());
+                        ct.sout.flush();
+                        ct.sout.writeUTF(msg);
+                        ct.sout.flush();
+                        ct.user.add_msg(this.user, msg);
                         this.user.add_msg(this.user, msg);
                         listen();
                     }
                 }
                 return false;
-            }
-
-            else if(action.equals("BROADCAST")) {
-                System.out.println("188");
+            } else if (action.equals("BROADCAST")) {
                 String msg = new String();
                 while (!msg.equals("SENDMSG"))
                     msg = this.sin.readUTF();
                 this.sin.readUTF();
                 msg = this.sin.readUTF();
-                System.out.println("194");
-                if(!msg.equals(""))
-                    getBroadcast(msg);
-            }
-
-            else if(action.equals("START")){
+                if (!msg.equals(""))
+                    for (ClientThread ct : clients)
+                        ct.getBroadcast(this.user.get_name() + ": " + msg + "\n");
+            } else if (action.equals("START")) {
                 String usr = new String();
                 usr = this.sin.readUTF();
-                this.sout.writeUTF("CHAT");
-                this.sout.flush();
-                this.sout.writeUTF(this.user.get_name());
-                this.sout.flush();
-                Boolean correct = this.sin.readBoolean();
-                if(correct){
-                    this.sout.writeUTF(usr);
-                    this.sout.flush();
+                for (ClientThread ct : clients) {
+                    if (ct.user.find(usr))
+                        ct.sout.writeUTF("CHAT");
+                    ct.sout.flush();
+                    ct.sout.writeUTF(ct.user.get_name());
+                    ct.sout.flush();
+                    Boolean correct = ct.sin.readBoolean();
+                    if (correct) {
+                        ct.sout.writeUTF(this.user.get_name());
+                        ct.sout.flush();
+                    }
                 }
-            }
-
-            else if(action.equals("LOGOUT")) {
+            } else if (action.equals("LOGOUT")) {
                 this.user.logout();
                 clients.remove(this);
                 this.connected = false;
-                this.sout.writeUTF("REFRESH");
-                this.sout.flush();
+                for (ClientThread ct : clients) {
+                    ct.sout.writeUTF("REFRESH");
+                    ct.sout.flush();
+                }
                 return false;
-            }
-
-            else if(action.equals("EXIT")){
-                if(this.user.writeHistory()){
-                    this.sout.writeUTF("DONE");
-                    this.sout.flush();
+            } else if (action.equals("EXIT")) {
+                String with = new String(this.sin.readUTF());
+                User other = null;
+                for (User u : users) {
+                    if (u.find(with))
+                        other = u;
+                }
+                if (other != null) {
+                    if (this.user.writeHistory() && other.writeHistory()) {
+                        this.sout.writeUTF("DONE");
+                        this.sout.flush();
+                    }
+                    for (ClientThread ct : clients) {
+                        if (ct.user.get_name().equals(with)) {
+                            ct.sout.writeUTF("EXITED");
+                            ct.sout.flush();
+                            ct.sout.writeUTF(this.user.get_name());
+                            ct.listen();
+                        }
+                    }
                 }
             }
-
-            return true;
+            return false;
         }
 
-      //  @Override
         public synchronized void run() {
-            if(!clients.contains(this))
+            if (!clients.contains(this))
                 clients.add(this);
             this.connected = true;
             String action = new String();
@@ -294,25 +299,15 @@ public class Server {
                     }
 
                 } catch (Exception ae) {
+                    ae.printStackTrace();
                     System.out.println("Client Thread exception caught\n");
                     return;
                 }
             }
 
-            String logout_msg = new String();
-            logout_msg = this.user.get_name() + " logged off\n";
-
-                try {
-                    getBroadcast(logout_msg);
-                }
-                catch(IOException e){
-                    System.out.println("Error broadcasting from server\n");
-                }
-
         }
 
-        public synchronized void getBroadcast(String msg) throws IOException{
-            System.out.println("318");
+        public synchronized void getBroadcast(String msg) throws IOException {
             this.sout.writeUTF("BROADCAST");
             this.sout.flush();
             this.sout.writeUTF(msg);
@@ -321,12 +316,10 @@ public class Server {
     }
 
 
-
-    public static void main(String[] args){
+    public static void main(String[] args) {
         try {
             Server server = new Server(3000);
-        }
-        catch(Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

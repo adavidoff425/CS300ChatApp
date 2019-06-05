@@ -14,7 +14,6 @@ public class Client extends JFrame{
     protected ClientGUI gui;
     protected String username;
     protected String server_address;
-    protected Scanner scan;
     protected int port;
 
     public Client(String server, int port){
@@ -32,13 +31,13 @@ public class Client extends JFrame{
             this.gui.append("Connection error" + e + "\n");
             return false;
         }
-
-        this.connected = true;
         this.gui.append("Connected to " + this.clientSocket.getInetAddress() + ":" + this.clientSocket.getPort() + "\n");
 
         try{
             this.sin = new DataInputStream(this.clientSocket.getInputStream());
             this.sout = new DataOutputStream(this.clientSocket.getOutputStream());
+            this.sout.writeBoolean(true);
+            this.sout.flush();
         }
         catch(IOException e){
             this.gui.append("Error creating I/O streams" + e + "\n");

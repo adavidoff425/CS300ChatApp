@@ -22,7 +22,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
     private ArrayList<JLabel> withs;
     private ArrayList<JTextArea> msgs, chats;
     private int tab;
-    private boolean doneListening;
+    private boolean listening;
     final static String BUTTONPANEL = "Chat Application";
     final static String REGISTERPANEL = "Register New User";
     final static String LOGINPANEL = "Please Login";
@@ -31,7 +31,6 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
     final static String USERS = "Active Users";
     final static String HISTORY = "User Chat History";
     final static String TEXT = "Message Area";
-    //private MouseListener selection = new MouseAdapter();
     private String name, pw, currentUser;
 
     public ClientGUI(String host, int port) throws ClassNotFoundException {
@@ -92,8 +91,6 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
         this.pack();
         this.setSize(1000, 750);
         this.setVisible(true);
-        this.doneListening = false;
-        //   new ListenThread(this.clientSocket, this.sin, this.sout).start();
     }
 
     public void append(String string) {
@@ -101,143 +98,134 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
     }
 
     public void actionPerformed(ActionEvent e) {
-        // this.doneListening = true;      // Stops ListenThread so data i/o doesn't interfere
         try {
-            try {
-                Object source = e.getSource();
-                if (source == this.register) {
-                    this.layout.show(cards, REGISTERPANEL);
+            Object source = e.getSource();
+            if (source == this.register) {
+                this.layout.show(cards, REGISTERPANEL);
 
-                } else if (source == this.login) {
-                    this.sout.writeUTF("LOGIN");
-                    this.sout.flush();
-                    this.layout.show(cards, LOGINPANEL);
+            } else if (source == this.login) {
+                this.sout.writeUTF("LOGIN");
+                this.sout.flush();
+                this.layout.show(cards, LOGINPANEL);
 
-                } else if (source == this.logout) {
-                    dumpButtons();
-                    this.sout.writeUTF("LOGOUT");
-                    this.sout.flush();
-                    this.layout.show(cards, BUTTONPANEL);
-                    this.doneListening = true;
+            } else if (source == this.logout) {
+                dumpButtons();
+                this.sout.writeUTF("LOGOUT");
+                this.sout.flush();
+                this.layout.show(cards, BUTTONPANEL);
 
-                } else if (source == this.displayUsers) {
-                    String name = new String();
-                    this.sout.writeUTF("USERS");
-                    this.sout.flush();
+            } else if (source == this.displayUsers) {
+                String name = new String();
+                this.sout.writeUTF("USERS");
+                this.sout.flush();
+                name = this.sin.readUTF();
+                while (!name.equals("DONE")) {
+                    this.listModel.addElement(name);
                     name = this.sin.readUTF();
-                    while (!name.equals("DONE")) {
-                        this.listModel.addElement(name);
-                        name = this.sin.readUTF();
-                    }
-                    this.layout.show(cards, USERS);
-                    this.doneListening = false;
-                    new ListenThread(clientSocket, sin, sout).start();
-
-                } else if (source == this.displayHistory) {
-                    String msg = new String();
-                    this.sout.writeUTF("HISTORY");
-                    this.sout.flush();
-                    msg = this.sin.readUTF();
-                    while (!msg.equals("DONE")) {
-                        this.allmsgs.append(msg);
-                        msg = this.sin.readUTF();
-                    }
-                    this.layout.show(cards, HISTORY);
-                    this.doneListening = false;
-                    new ListenThread(clientSocket, sin, sout).start();
-
-                } else if (source == this.enter) {
-                    this.sout.writeUTF("REGISTER");
-                    this.sout.flush();
-                    try {
-                        this.name = new String(this.username.getText());
-                        this.pw = new String(this.password.getText());
-                    } catch (Exception te) {
-                        append("Error retrieving register screen text\n");
-                    }
-                    if (registerUser(this.name, this.pw)) {
-                        System.out.println("Registered" + this.name + "\n");
-                        this.username.setText("Enter username: ");
-                        this.password.setText("Enter password: ");
-                        this.layout.show(this.cards, RUNNINGPANEL);
-                    }
-
-                } else if (source == this.login2) {
-                    try {
-                        this.name = new String(this.username2.getText());
-                        this.pw = new String(this.password2.getText());
-                    } catch (Exception le) {
-                        append("Error retrieving login screen text\n");
-                    }
-                    if (loginAttempt(this.name, this.pw)) {
-                        append("Logged in as " + this.name + "\n");
-                        this.username2.setText("Enter username: ");
-                        this.password2.setText("Enter password: ");
-                        this.layout.show(this.cards, RUNNINGPANEL);
-                    }
-
-                } else if (source == this.start) {
-                    if (this.currentUser.equals(this.name) || this.onlineUsers.isSelectionEmpty()) {
-                        this.sout.writeUTF("BROADCAST");
-                        this.sout.flush();
-                    } else {
-                        this.sout.writeUTF("START");
-                        this.sout.flush();
-                        this.sout.writeUTF(this.currentUser);
-                        this.sout.flush();
-                    }
-                    JScrollPane tab = newChat(this.currentUser);
-                    this.chatTabs.add(this.currentUser, tab);
-                    this.currentUser = null;
-                    this.layout.show(this.cards, RUNNINGPANEL);
-                    this.doneListening = false;
-
-                } else if (source == this.exit2) {
-                    this.sout.writeUTF("EXIT");
-                    this.sout.flush();
-                    this.layout.show(this.cards, RUNNINGPANEL);
-                    this.doneListening = false;
-                    new ListenThread(clientSocket, sin, sout).start();
-
-                } else if (source == this.sends.get(this.tab)) {
-                    this.sout.writeUTF("SENDMSG");
-                    this.sout.flush();
-                    this.sout.writeUTF(this.withs.get(this.tab).getText());
-                    this.sout.flush();
-                    String message = new String(this.msgs.get(this.tab).getText());
-                    if (message.equals("Enter Message"))
-                        message = "";
-                    else
-                        message = this.name + ": " + message;
-                    this.sout.writeUTF(message);
-                    this.sout.flush();
-
-                } else if (source == this.clears.get(this.tab)) {
-                    this.msgs.get(this.tab).setText("Enter Message");
-                    this.doneListening = false;
-                    new ListenThread(clientSocket, sin, sout).start();
-
-                } else if (source == this.exits.get(this.tab)) {
-                    this.sout.writeUTF("WRITE");
-                    this.sout.flush();
-                    String done = new String(this.sin.readUTF());
-                    if (done.equals("DONE")) {
-                        this.withs.remove(this.tab);
-                        this.msgs.remove(this.tab);
-                        this.sends.remove(this.tab);
-                        this.clears.remove(this.tab);
-                        this.exits.remove(this.tab);
-                        this.chatTabs.remove(this.tab + 1);
-                        this.doneListening = false;
-                        new ListenThread(clientSocket, sin, sout).start();
-                    }
                 }
-            } catch(ClassNotFoundException cnf) {}
+                this.layout.show(cards, USERS);
+
+            } else if (source == this.displayHistory) {
+                String msg = new String();
+                this.sout.writeUTF("HISTORY");
+                this.sout.flush();
+                msg = this.sin.readUTF();
+                while (!msg.equals("DONE")) {
+                    this.allmsgs.append(msg);
+                    msg = this.sin.readUTF();
+                }
+                this.layout.show(cards, HISTORY);
+
+            } else if (source == this.enter) {
+                this.sout.writeUTF("REGISTER");
+                this.sout.flush();
+                try {
+                    this.name = new String(this.username.getText());
+                    this.pw = new String(this.password.getText());
+                } catch (Exception te) {
+                    append("Error retrieving register screen text\n");
+                }
+                if (registerUser(this.name, this.pw)) {
+                    append("Registered" + this.name + "\n");
+                    append("Logged in as " + this.name + "\n");
+                    this.username.setText("Enter username: ");
+                    this.password.setText("Enter password: ");
+                    this.layout.show(this.cards, RUNNINGPANEL);
+                }
+
+            } else if (source == this.login2) {
+                try {
+                    this.name = new String(this.username2.getText());
+                    this.pw = new String(this.password2.getText());
+                } catch (Exception le) {
+                    append("Error retrieving login screen text\n");
+                }
+                if (loginAttempt(this.name, this.pw)) {
+                    append("Logged in as " + this.name + "\n");
+                    listening = true;
+                    this.username2.setText("Enter username: ");
+                    this.password2.setText("Enter password: ");
+                    this.layout.show(this.cards, RUNNINGPANEL);
+                }
+
+            } else if (source == this.start) {
+                if (this.currentUser.equals(this.name) || this.onlineUsers.isSelectionEmpty()) {
+                    this.sout.writeUTF("BROADCAST");
+                    this.sout.flush();
+                } else {
+                    this.sout.writeUTF("START");
+                    this.sout.flush();
+                    this.sout.writeUTF(this.currentUser);
+                    this.sout.flush();
+                }
+                JScrollPane tab = newChat(this.currentUser);
+                this.chatTabs.add(this.currentUser, tab);
+                this.currentUser = null;
+                this.layout.show(this.cards, RUNNINGPANEL);
+
+            } else if (source == this.exit2) {
+                this.sout.writeUTF("EXIT");
+                this.sout.flush();
+                this.layout.show(this.cards, RUNNINGPANEL);
+
+            } else if (source == this.sends.get(this.tab)) {
+                this.sout.writeUTF("SENDMSG");
+                this.sout.flush();
+                this.sout.writeUTF(this.withs.get(this.tab).getText());
+                this.sout.flush();
+                String message = new String(this.msgs.get(this.tab).getText());
+                System.out.println(message);
+                if (message.equals("Enter Message"))
+                    message = "";
+                else
+                    message = this.name + ": " + message;
+                this.sout.writeUTF(message);
+                this.sout.flush();
+                this.chats.get(this.tab).append(message);
+                this.allmsgs.append(message);
+                this.msgs.get(this.tab).setText("Enter Message");
+
+            } else if (source == this.clears.get(this.tab)) {
+                this.msgs.get(this.tab).setText("Enter Message");
+
+            } else if (source == this.exits.get(this.tab)) {
+                this.sout.writeUTF("EXIT");
+                this.sout.flush();
+                this.sout.writeUTF(this.withs.get(this.tab).getText());
+                this.sout.flush();
+                String done = new String(this.sin.readUTF());
+                if (done.equals("DONE")) {
+                    this.withs.remove(this.tab);
+                    this.msgs.remove(this.tab);
+                    this.sends.remove(this.tab);
+                    this.clears.remove(this.tab);
+                    this.exits.remove(this.tab);
+                    this.chatTabs.remove(this.tab + 1);
+                }
+            }
         } catch (IOException ioe) {
             append("Error sending action information to server\n");
         }
-
-
     }
 
     public void registerScreen() {
@@ -354,6 +342,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
 
         if (register(name, pw)) {
             try {
+                listening = true;
                 new ListenThread(this.clientSocket, this.sin, this.sout).start();
             } catch (Exception le) {
                 append("Error listening on server\n");
@@ -365,7 +354,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
 
     public boolean loginAttempt(String name, String pw) {
         if (login(name, pw)) {
-            try {
+           try {
                 new ListenThread(this.clientSocket, this.sin, this.sout).start();
             } catch (Exception le) {
                 append("Error listening on server\n");
@@ -383,71 +372,100 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
         this.tab = this.chatTabs.getSelectedIndex() - 1;
     }
 
-    public void listenToServer(String action) throws IOException {
-        DataInputStream lIn;
-        DataOutputStream lOut;
+    public class ListenThread extends Thread {
+        final private Socket socket;
+        final private DataInputStream sin;
+        final private DataOutputStream sout;
+        private String action;
 
-        lIn = new DataInputStream(this.sin);
-        lOut = new DataOutputStream(this.sout);
+        public ListenThread(Socket socket, DataInputStream in, DataOutputStream out) throws ClassNotFoundException, IOException{
+            this.socket = new Socket(server_address, port);
+            this.sin = new DataInputStream(socket.getInputStream());
+            this.sout = new DataOutputStream(socket.getOutputStream());
 
-        System.out.println("Listening to server");
+            this.action = new String();
+            this.sout.writeBoolean(false);
+            this.sout.flush();
+        }
+
+        public synchronized void run() {
+            System.out.println("Running");
             try {
-                while (!doneListening) {
-                    System.out.println(action);
-                    if (action.equals("BROADCAST") || action.equals("CHAT") || action.equals("NEWMSG")) {
-                        listen(action, lIn, lOut);
-                        doneListening = true;
-                    }
+                while (true) {
+                        System.out.println("Trying to read action");
+                        action = this.sin.readUTF();
+                        System.out.println(action);
+                        if (action.equals("BROADCAST") || action.equals("CHAT") || action.equals("NEWMSG") || action.equals("EXITED")) {
+                            listen(action);
+                            continue;
+                        }
                 }
             } catch (IOException e) {
                 System.out.println("Error listening from server\n");
             }
         }
 
-        public void listen(String msg, DataInputStream in, DataOutputStream out){
+        public synchronized void listen(String msg) throws IOException {
             System.out.println("listening");
             if (msg.equals("BROADCAST")) {
-                msg = in.readUTF();
+                msg = this.sin.readUTF();
                 append("New broadcasted message: Check broadcast tab\n");
-                this.broadcastTab.append(msg);
+                broadcastTab.append(msg);
             } else if (msg.equals("CHAT")) {
-                msg = in.readUTF();
+                msg = this.sin.readUTF();
                 if (msg.equals(name)) {
-                    out.writeBoolean(true);
-                    out.flush();
-                    msg = in.readUTF();
+                    this.sout.writeBoolean(true);
+                    this.sout.flush();
+                    msg = this.sin.readUTF();
                     append("New chat starting with " + msg + "\n");
                     JScrollPane tab = newChat(msg);
-                    this.chatTabs.add(msg, tab);
+                    chatTabs.add(msg, tab);
                 } else {
-                    out.writeBoolean(false);
-                    out.flush();
-                    in.readUTF();
+                    this.sout.writeBoolean(false);
+                    this.sout.flush();
+                    this.sin.readUTF();
                 }
             } else if (msg.equals("NEWMSG")) {
                 int index = -1;
                 String user = new String();
-                user = in.readUTF();
+                user = this.sin.readUTF();
                 if (user.equals(name)) {
-                    user = in.readUTF();
-                    msg = in.readUTF();
-                    for (JLabel w : this.withs) {
+                    user = this.sin.readUTF();
+                    msg = this.sin.readUTF();
+                    for (JLabel w : withs) {
                         if (w.getText().equals(user)) {
-                            index = this.withs.indexOf(w);
+                            index = withs.indexOf(w);
                             break;
                         }
                     }
                     if (index > -1)
-                        this.chats.get(index).append(user + ": " + msg + "\n");
+                        chats.get(index).append(user + ": " + msg + "\n");
                 } else {
-                    in.readUTF();
-                    in.readUTF();       // Effectively flushes input stream if not the user that is
+                    this.sin.readUTF();
+                    this.sin.readUTF();       // Effectively flushes input stream if not the user that is
                     // being messaged to.
                 }
+            } else if(action.equals("EXITED")){
+                String who = new String(this.sin.readUTF());
+                int index = -1;
+                for(JLabel w : withs){
+                    if(w.getText().equals(who)){
+                        index = withs.indexOf(w);
+                        break;
+                    }
+                }
+                if (index > -1){
+                    withs.remove(index);
+                    msgs.remove(index);
+                    sends.remove(index);
+                    clears.remove(index);
+                    exits.remove(index);
+                    chatTabs.remove(index);
+                }
+
             }
-            in.close();
-            out.close();
         }
+    }
 
     public void dumpButtons() {
         for (JTextArea a : this.chats) {
