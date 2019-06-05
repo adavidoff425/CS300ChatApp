@@ -67,7 +67,8 @@ public class Server {
             try {
                 DataInputStream in = new DataInputStream(server.getInputStream());
                 DataOutputStream out = new DataOutputStream(server.getOutputStream());
-                Thread newClient = new ClientThread(server, in, out);
+                ClientThread newClient = new ClientThread(server, in, out);
+                this.clients.add(newClient);
                 newClient.start();
             }
             catch(Exception e) {
@@ -124,19 +125,19 @@ public class Server {
         final private Socket clientSocket;
         final private DataInputStream sin;
         final private DataOutputStream sout;
-       // final private ClientGUI gui;
         private boolean connected;
 
         public ClientThread(Socket socket, DataInputStream in, DataOutputStream out) throws ClassNotFoundException {
             this.clientSocket = socket;
-            this.sin = in;
-            this.sout = out;
+            this.sin = new DataInputStream(in);
+            this.sout = new DataOutputStream(out);
         }
 
         public synchronized boolean listen() throws IOException{
             String action = new String();
 
             action = this.sin.readUTF();
+            System.out.println(action);
             if (action.equals("USERS")){
                 for(User u : users){
                     if(u.isLoggedIn()){
@@ -162,11 +163,20 @@ public class Server {
             }
 
             else if(action.equals("SENDMSG")) {
-                String usr = this.sin.readUTF();
-                String msg = this.sin.readUTF();
-                User to = null;
+                String usr = new String();
+                String msg = new String();
+                usr = this.sin.readUTF();
+                msg = this.sin.readUTF();
                 for (User u : users) {
                     if (u.find(usr)) {
+                        this.sout.writeUTF("NEWMSG");
+                        this.sout.flush();
+                        this.sout.writeUTF(usr);
+                        this.sout.flush();
+                        this.sout.writeUTF(this.user.get_name());
+                        this.sout.flush();
+                        this.sout.writeUTF(msg);
+                        this.sout.flush();
                         u.add_msg(this.user, msg);
                         this.user.add_msg(this.user, msg);
                         listen();
@@ -175,17 +185,53 @@ public class Server {
                 return false;
             }
 
+            else if(action.equals("BROADCAST")) {
+                System.out.println("188");
+                String msg = new String();
+                while (!msg.equals("SENDMSG"))
+                    msg = this.sin.readUTF();
+                this.sin.readUTF();
+                msg = this.sin.readUTF();
+                System.out.println("194");
+                if(!msg.equals(""))
+                    getBroadcast(msg);
+            }
+
+            else if(action.equals("START")){
+                String usr = new String();
+                usr = this.sin.readUTF();
+                this.sout.writeUTF("CHAT");
+                this.sout.flush();
+                this.sout.writeUTF(this.user.get_name());
+                this.sout.flush();
+                Boolean correct = this.sin.readBoolean();
+                if(correct){
+                    this.sout.writeUTF(usr);
+                    this.sout.flush();
+                }
+            }
+
             else if(action.equals("LOGOUT")) {
                 this.user.logout();
-                // Refresh all user lists
+                clients.remove(this);
+                this.connected = false;
+                this.sout.writeUTF("REFRESH");
+                this.sout.flush();
                 return false;
+            }
+
+            else if(action.equals("EXIT")){
+                if(this.user.writeHistory()){
+                    this.sout.writeUTF("DONE");
+                    this.sout.flush();
+                }
             }
 
             return true;
         }
 
-        @Override
-        public void run() {
+      //  @Override
+        public synchronized void run() {
             if(!clients.contains(this))
                 clients.add(this);
             this.connected = true;
@@ -206,7 +252,7 @@ public class Server {
                                 REGISTER = false;
                                 this.sout.writeBoolean(REGISTER);
                                 this.sout.flush();
-                                run();
+                                continue;
                             } else if (action.equals("LOGIN") && u.equals(username)) {
                                 try {
                                     LOGIN = true;
@@ -219,7 +265,7 @@ public class Server {
                                         if (this.user == null) {
                                             this.sout.writeBoolean(false);
                                             this.sout.flush();
-                                            run();
+                                            continue;
                                         } else {
                                             this.sout.writeBoolean(true);
                                             connected = listen();
@@ -243,7 +289,7 @@ public class Server {
                         } else if (action.equals("LOGIN") && !LOGIN) {
                             this.sout.writeBoolean(false);
                             this.sout.flush();
-                            run();
+                            continue;
                         }
                     }
 
@@ -252,6 +298,25 @@ public class Server {
                     return;
                 }
             }
+
+            String logout_msg = new String();
+            logout_msg = this.user.get_name() + " logged off\n";
+
+                try {
+                    getBroadcast(logout_msg);
+                }
+                catch(IOException e){
+                    System.out.println("Error broadcasting from server\n");
+                }
+
+        }
+
+        public synchronized void getBroadcast(String msg) throws IOException{
+            System.out.println("318");
+            this.sout.writeUTF("BROADCAST");
+            this.sout.flush();
+            this.sout.writeUTF(msg);
+            this.sout.flush();
         }
     }
 
@@ -259,7 +324,7 @@ public class Server {
 
     public static void main(String[] args){
         try {
-            Server server = new Server(2222);
+            Server server = new Server(3000);
         }
         catch(Exception e){
             e.printStackTrace();

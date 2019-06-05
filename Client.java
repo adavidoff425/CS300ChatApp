@@ -19,6 +19,7 @@ public class Client extends JFrame{
 
     public Client(String server, int port){
         super("Chat Application");
+        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.server_address = server;
         this.port = port;
     }
@@ -31,6 +32,8 @@ public class Client extends JFrame{
             this.gui.append("Connection error" + e + "\n");
             return false;
         }
+
+        this.connected = true;
         this.gui.append("Connected to " + this.clientSocket.getInetAddress() + ":" + this.clientSocket.getPort() + "\n");
 
         try{
