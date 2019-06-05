@@ -19,6 +19,7 @@ public class Client extends JFrame{
 
     public Client(String server, int port){
         super("Chat Application");
+        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.server_address = server;
         this.port = port;
     }

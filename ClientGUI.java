@@ -6,29 +6,35 @@ import java.awt.event.*;
 import javax.swing.*;
 import javax.swing.event.*;
 
-class ClientGUI extends Client implements ListSelectionListener, ActionListener{
+class ClientGUI extends Client implements ListSelectionListener, ActionListener, ChangeListener{
     private CardLayout layout, textLayout;
-    private JPanel cards, active, textBox;
+    private JPanel cards, textBox;
     private JButton register, login, login2, logout, displayUsers, displayHistory, enter, send, exit, exit2, clear, start;
-    private JTextArea chat, msg, text, allmsgs;
+    private JTextArea chat, msg, text, allmsgs, broadcastTab;
+    private JLabel label;
     private JTextField username, password, username2, password2;
     private JList<String> onlineUsers;
     private DefaultListModel listModel;
-    private JScrollPane users, history;
-    private JPanel buttonPanel, registerPanel, loginPanel, runningPanel, chatPanel, historyPanel;
+    private JScrollPane users, history, chatScroll;
+    private JPanel buttonPanel, registerPanel, loginPanel, runningPanel, chatPanel, historyPanel, userPanel;
+    private JTabbedPane chatTabs;
+    private ArrayList<JButton> sends, clears, exits;
+    private ArrayList<JLabel> withs;
+    private ArrayList<JTextArea> msgs, chats;
+    private int tab;
+    private boolean doneListening;
     final static String BUTTONPANEL = "Chat Application";
     final static String REGISTERPANEL = "Register New User";
     final static String LOGINPANEL = "Please Login";
     final static String RUNNINGPANEL = "Chat App Running";
-    final static String CHATPANEL = "Active Chat";
+    final static String CHATPANEL = "Chat Area";
     final static String USERS = "Active Users";
     final static String HISTORY = "User Chat History";
     final static String TEXT = "Message Area";
-    final static String ACTIVE = "Logged into Application";
     //private MouseListener selection = new MouseAdapter();
     private String name, pw, currentUser;
 
-    public ClientGUI(String host, int port){
+    public ClientGUI(String host, int port) throws ClassNotFoundException{
         super(host, port);
         this.gui = this;
 
@@ -37,6 +43,9 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
 
         this.cards = new JPanel(this.layout);
         this.textBox = new JPanel(this.textLayout);
+        this.chatTabs = new JTabbedPane();
+        this.chatTabs.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
+        this.chatTabs.addChangeListener(this);
 
         try{
             // Initial panel
@@ -49,11 +58,12 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
             this.login.addActionListener(this);
             this.buttonPanel.add(this.register);
             this.buttonPanel.add(this.login);
+            this.broadcastTab = new JTextArea("MESSAGES FROM ALL USERS");
+            this.broadcastTab.setEditable(false);
 
             registerScreen();
             loginScreen();
             runningScreen();
-            chatScreen();
             usersScreen();
             historyScreen();
         }
@@ -65,47 +75,72 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         this.cards.add(this.registerPanel, REGISTERPANEL);
         this.cards.add(this.loginPanel, LOGINPANEL);
         this.cards.add(this.runningPanel, RUNNINGPANEL);
-        this.cards.add(this.chatPanel, CHATPANEL);
         this.cards.add(this.users, USERS);
         this.cards.add(this.historyPanel, HISTORY);
         this.textBox.add(this.text, TEXT);
+        this.chatTabs.add(this.broadcastTab);
+        this.sends = new ArrayList<>();
+        this.clears = new ArrayList<>();
+        this.exits = new ArrayList<>();
+        this.withs = new ArrayList<>();
+        this.msgs = new ArrayList<>();
+        this.chats = new ArrayList<>();
 
         connect();
         this.add(this.cards, BorderLayout.CENTER);
         this.add(this.textBox, BorderLayout.NORTH);
+        this.add(this.chatTabs, BorderLayout.EAST);
         this.pack();
         this.setSize(1000, 750);
         this.setVisible(true);
+        this.doneListening = false;
+     //   new ListenThread(this.clientSocket, this.sin, this.sout).start();
     }
     
     public void append(String string){
         this.text.append(string);
     }
-    
+
     public void actionPerformed(ActionEvent e) {
+        this.doneListening = true;      // Stops ListenThread so data i/o doesn't interfere
         try {
             Object source = e.getSource();
             if (source == this.register) {
                 this.layout.show(cards, REGISTERPANEL);
+
             } else if (source == this.login) {
                 this.sout.writeUTF("LOGIN");
                 this.sout.flush();
                 this.layout.show(cards, LOGINPANEL);
+
             } else if (source == this.logout) {
+                dumpButtons();
                 this.sout.writeUTF("LOGOUT");
                 this.sout.flush();
                 this.layout.show(cards, BUTTONPANEL);
+
             } else if (source == this.displayUsers) {
                 String name = new String();
                 this.sout.writeUTF("USERS");
                 this.sout.flush();
                 name = this.sin.readUTF();
-                while(!name.equals("DONE")) {
+                while (!name.equals("DONE")) {
                     this.listModel.addElement(name);
                     name = this.sin.readUTF();
                 }
                 this.layout.show(cards, USERS);
-                // userList();
+
+            } else if (source == this.displayHistory){
+                String msg = new String();
+                this.sout.writeUTF("HISTORY");
+                this.sout.flush();
+                msg = this.sin.readUTF();
+                while(!msg.equals("DONE")){
+                    this.allmsgs.append(msg);
+                    msg = this.sin.readUTF();
+                }
+                this.layout.show(cards, HISTORY);
+
             } else if (source == this.enter) {
                 this.sout.writeUTF("REGISTER");
                 this.sout.flush();
@@ -121,6 +156,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
                     this.password.setText("Enter password: ");
                     this.layout.show(this.cards, RUNNINGPANEL);
                 }
+
             } else if (source == this.login2){
                 try{
                     this.name = new String(this.username2.getText());
@@ -135,11 +171,63 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
                     this.password2.setText("Enter password: ");
                     this.layout.show(this.cards, RUNNINGPANEL);
                 }
+
+            } else if (source == this.start){
+                if(this.currentUser.equals(this.name) || this.onlineUsers.isSelectionEmpty()) {
+                    this.sout.writeUTF("BROADCAST");
+                    this.sout.flush();
+                }
+                else {
+                    this.sout.writeUTF("START");
+                    this.sout.flush();
+                    this.sout.writeUTF(this.currentUser);
+                    this.sout.flush();
+                }
+                JScrollPane tab = newChat(this.currentUser);
+                this.chatTabs.add(this.currentUser, tab);
+                this.currentUser = null;
+                this.layout.show(this.cards, RUNNINGPANEL);
+
+            } else if (source == this.exit2) {
+                this.sout.writeUTF("EXIT");
+                this.sout.flush();
+                this.layout.show(this.cards, RUNNINGPANEL);
+
+            } else if (source == this.sends.get(this.tab)){
+                this.sout.writeUTF("SENDMSG");
+                this.sout.flush();
+                this.sout.writeUTF(this.withs.get(this.tab).getText());
+                this.sout.flush();
+                String message = new String(this.msgs.get(this.tab).getText());
+                if(message.equals("Enter Message"))
+                    message = "";
+                else
+                    message = this.name + ": " + message;
+                this.sout.writeUTF(message);
+                this.sout.flush();
+
+            } else if (source == this.clears.get(this.tab)){
+                this.msgs.get(this.tab).setText("Enter Message");
+
+            } else if (source == this.exits.get(this.tab)){
+                this.sout.writeUTF("WRITE");
+                this.sout.flush();
+                String done = new String(this.sin.readUTF());
+                if(done.equals("DONE")) {
+                    this.withs.remove(this.tab);
+                    this.msgs.remove(this.tab);
+                    this.sends.remove(this.tab);
+                    this.clears.remove(this.tab);
+                    this.exits.remove(this.tab);
+                    this.chatTabs.remove(this.tab + 1);
+                }
             }
         }
         catch(IOException ioe){
             append("Error sending action information to server\n");
         }
+
+        this.doneListening = false;
     }
     
     public void registerScreen(){
@@ -179,29 +267,46 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         this.displayHistory = new JButton("Chat History");
         this.logout.addActionListener(this);
         this.displayUsers.addActionListener(this);
+        this.displayHistory.addActionListener(this);
         this.runningPanel.add(this.logout);
         this.runningPanel.add(this.displayUsers);
+        this.runningPanel.add(this.displayHistory);
     }
 
-    public void chatScreen(){
-        this.chat = new JTextArea(20, 20);
-        this.msg = new JTextArea("Enter Message", 20, 20);
-        this.send = new JButton("Send");
-        this.clear = new JButton("Clear");
-        this.exit = new JButton("End Chat");
-        this.send.addActionListener(this);
-        this.clear.addActionListener(this);
-        this.exit.addActionListener(this);
-        this.chat.setEditable(false);
-        this.msg.setEditable(true);
-        this.chat.setLineWrap(true);
-        this.msg.setLineWrap(true);
-        this.chatPanel = new JPanel();
-        this.chatPanel.add(this.msg);
-        this.chatPanel.add(this.chat);
-        this.chatPanel.add(this.send);
-        this.chatPanel.add(this.clear);
-        this.chatPanel.add(this.exit);
+    public JScrollPane newChat(String chatWith){
+        if(chatWith.equals(""))
+            chatWith = "ALL";
+        JPanel panel = new JPanel();
+        JTextArea chat = new JTextArea(20, 20);
+        JTextArea msg = new JTextArea("Enter Message", 20, 20);
+        JButton send = new JButton("Send");
+        JButton clear = new JButton("Clear");
+        JButton exit = new JButton("End Chat");
+        JLabel with = new JLabel(chatWith);
+
+        send.addActionListener(this);
+        clear.addActionListener(this);
+        exit.addActionListener(this);
+        this.withs.add(with);
+        this.msgs.add(msg);
+        this.sends.add(send);
+        this.clears.add(clear);
+        this.exits.add(exit);
+        this.chats.add(chat);
+
+        chat.setEditable(false);
+        msg.setEditable(true);
+        chat.setLineWrap(true);
+        msg.setLineWrap(true);
+
+        panel.add(msg);
+        panel.add(chat);
+        panel.add(with);
+        panel.add(send);
+        panel.add(clear);
+        panel.add(exit);
+        JScrollPane chatScroll = new JScrollPane(panel);
+        return chatScroll;
     }
 
     public void usersScreen(){
@@ -211,11 +316,14 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
         this.onlineUsers.setLayoutOrientation(JList.VERTICAL);
         this.onlineUsers.setVisibleRowCount(10);
         this.onlineUsers.addListSelectionListener(this);
+        this.label = new JLabel("Select User");
         this.start = new JButton("Start Chat");
+        this.start.addActionListener(this);
         this.userPanel = new JPanel();
         this.userPanel.add(this.onlineUsers);
-        this.userPAnel.add(this.start);
-        //this.onlineUsers.addMouseListener(selection);
+        this.userPanel.add(this.start);
+        this.userPanel.add(this.label);
+        this.currentUser = new String();
         this.users = new JScrollPane(this.userPanel);
     }
 
@@ -234,18 +342,140 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener{
 
     public boolean registerUser(String name, String pw){
 
-        if(register(name, pw))
+        if(register(name, pw)) {
+            try {
+                new ListenThread(this.clientSocket, this.sin, this.sout).start();
+            } catch (Exception le) {
+                append("Error listening on server\n");
+            }
             return true;
+        }
         return false;
     }
 
     public boolean loginAttempt(String name, String pw){
-       if(login(name, pw))
+       if(login(name, pw)) {
+           try {
+               new ListenThread(this.clientSocket, this.sin, this.sout).start();
+           } catch (Exception le) {
+               append("Error listening on server\n");
+           }
            return true;
+       }
        return false;
     }
 
     public void valueChanged(ListSelectionEvent event){
-        this.currentUser = this.users.getSelectedValue();
+        this.currentUser =  this.onlineUsers.getSelectedValue();
     }
+
+    public void stateChanged(ChangeEvent e){
+        this.tab = this.chatTabs.getSelectedIndex() - 1;
+    }
+
+    public class ListenThread extends Thread{
+        final private Socket socket;
+        final private DataInputStream sin;
+        final private DataOutputStream sout;
+        private String action;
+
+        public ListenThread(Socket socket, DataInputStream in, DataOutputStream out) throws ClassNotFoundException {
+                this.socket = clientSocket;
+                this.sin = new DataInputStream(in);
+                this.sout = new DataOutputStream(out);
+                this.action = new String();
+
+        }
+
+        public synchronized void run() {
+            System.out.println("Running");
+            try {
+                while (!doneListening) {
+                    System.out.println("Trying to read action");
+                    action = this.sin.readUTF();
+                    System.out.println(action);
+                    if (action.equals("BROADCAST") || action.equals("CHAT") || action.equals("NEWMSG")) {
+                        listen(action);
+                        doneListening = true;
+                    }
+                }
+            }
+            catch(IOException e){
+                System.out.println("Error listening from server\n");
+            }
+        }
+
+
+
+        public synchronized void listen(String msg) throws IOException{
+            System.out.println("listening");
+            if(msg.equals("BROADCAST")) {
+                msg = this.sin.readUTF();
+                append("New broadcasted message: Check broadcast tab\n");
+                broadcastTab.append(msg);
+            }
+            else if(msg.equals("CHAT")){
+                msg = this.sin.readUTF();
+                if(msg.equals(name)) {
+                    this.sout.writeBoolean(true);
+                    this.sout.flush();
+                    msg = this.sin.readUTF();
+                    append("New chat starting with " + msg + "\n");
+                    JScrollPane tab = newChat(msg);
+                    chatTabs.add(msg, tab);
+                }
+                else{
+                    this.sout.writeBoolean(false);
+                    this.sout.flush();
+                    this.sin.readUTF();
+                }
+            }
+            else if(msg.equals("NEWMSG")){
+                int index = -1;
+                String user = new String();
+                user = this.sin.readUTF();
+                if(user.equals(name)){
+                    user = this.sin.readUTF();
+                    msg = this.sin.readUTF();
+                    for(JLabel w : withs) {
+                        if (w.getText().equals(user)) {
+                            index = withs.indexOf(w);
+                            break;
+                        }
+                    }
+                    if(index > -1)
+                        chats.get(index).append(user + ": " + msg + "\n");
+                }
+                else{
+                    this.sin.readUTF();
+                    this.sin.readUTF();       // Effectively flushes input stream if not the user that is
+                                              // being messaged to.
+                }
+            }
+            this.socket.close();
+            this.sin.close();
+            this.sout.close();
+        }
+    }
+
+    public void dumpButtons(){
+       for(JTextArea a : this.chats){
+           System.out.println(a.getText());
+       }
+
+       for(JTextArea b : this.msgs){
+           System.out.println(b.getText());
+       }
+
+       for(JButton c : this.exits)
+           System.out.println(this.exits.indexOf(c));
+
+       for(JLabel d : this.withs)
+           System.out.println(d.getText());
+
+       for(JButton e : this.sends){
+           System.out.println(this.sends.indexOf(e));
+
+    }
+
 }
