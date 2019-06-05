@@ -8,7 +8,7 @@ import javax.swing.event.*;
 
 class ClientGUI extends Client implements ListSelectionListener, ActionListener, ChangeListener{
     private CardLayout layout, textLayout;
-    private JPanel cards, textBox, defaultTab;
+    private JPanel cards, textBox, BroadcastTab;
     private JButton register, login, login2, logout, displayUsers, displayHistory, enter, send, exit, exit2, clear, start;
     private JTextArea chat, msg, text, allmsgs;
     private JTextField username, password, username2, password2;
@@ -56,7 +56,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
             this.login.addActionListener(this);
             this.buttonPanel.add(this.register);
             this.buttonPanel.add(this.login);
-            this.defaultTab = new JPanel();
+            this.broadcastTab = new JPanel();
 
             registerScreen();
             loginScreen();
@@ -75,7 +75,7 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
         this.cards.add(this.users, USERS);
         this.cards.add(this.historyPanel, HISTORY);
         this.textBox.add(this.text, TEXT);
-        this.chatTabs.add(this.defaultTab);
+        this.chatTabs.add(this.broadcastTab);
         this.sends = new ArrayList<>();
         this.clears = new ArrayList<>();
         this.exits = new ArrayList<>();
@@ -351,25 +351,38 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
         this.currentUser =  this.onlineUsers.getSelectedValue();
     }
 
-    public void listen() throws IOException{
-        String msg = new String();
-        while(connected){
-            while(!msg.equals("BROADCAST") && !msg.equals("CHAT") && !msg.equals("NEWMSG")){
-                msg = this.sin.readUTF();
+    public class ListenThread extends Thread{
+        final private Socket clientSocket;
+        final private DataInputStream sin;
+        final private DataOutputStream sout;
+
+        public ListenThread(Socket socket, DataInputStream in, DataOutputStream out) throws ClassNotFoundException {
+                this.clientSocket = socket;
+                this.sin = new DataInputStream(in);
+                this.sout = new DataOutputStream(out);
+                String action = new String();
+
+            while(connected) {
+                action = this.sin.readUTF();
+                listen(action);
             }
+        }
+
+        public synchronized void listen(String msg) throws IOException{
             if(msg.equals("BROADCAST")) {
                 msg = this.sin.readUTF();
-                append(msg);
+                append("New broadcasted message: Check broadcast tab\n");
+                broadcastTab.append(msg);
             }
             else if(msg.equals("CHAT")){
                 msg = this.sin.readUTF();
-                if(msg.equals(this.name)) {
+                if(msg.equals(name)) {
                     this.sout.writeBoolean(true);
                     this.sout.flush();
                     msg = this.sin.readUTF();
                     append("New chat starting with " + msg + "\n");
                     JScrollPane tab = newChat(msg);
-                    this.chatTabs.add(msg, tab);
+                    chatTabs.add(msg, tab);
                 }
                 else{
                     this.sout.writeBoolean(false);
@@ -381,23 +394,26 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
                 int index = -1;
                 String user = new String();
                 user = this.sin.readUTF();
-                if(user.equals(this.name)){
+                if(user.equals(name)){
                     user = this.sin.readUTF();
                     msg = this.sin.readUTF();
                     for(JLabel w : withs) {
                         if (w.getText().equals(user)) {
-                            index = this.withs.indexOf(w);
+                            index = withs.indexOf(w);
                             break;
                         }
                     }
                     if(index > -1)
-                        this.chats.get(index).append(user + ": " + msg + "\n");
+                        chats.get(index).append(user + ": " + msg + "\n");
                 }
                 else{
                     this.sin.readUTF();
                     this.sin.readUTF();
                 }
             }
+            this.socket.close();
+            this.sin.close();
+            this.sout.close();
         }
     }
 
