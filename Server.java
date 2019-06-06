@@ -153,7 +153,7 @@ public class Server {
                 }
                 this.sout.writeUTF("DONE");
                 this.sout.flush();
-                if(test)
+                if (test)
                     System.out.println("Active user list sent to client\n");
                 listen();
             } else if (action.equals("HISTORY")) {
@@ -165,7 +165,7 @@ public class Server {
                 }
                 this.sout.writeUTF("DONE");
                 this.sout.flush();
-                if(test)
+                if (test)
                     System.out.println("Chat history sent to client\n");
                 listen();
             } else if (action.equals("SENDMSG")) {
@@ -183,12 +183,12 @@ public class Server {
                         ct.sout.flush();
                         ct.user.add_msg(this.user, msg);
                         this.user.add_msg(this.user, msg);
-                        if(test)
+                        if (test)
                             System.out.println("Message written to both users chat history\n");
                         listen();
                     }
                 }
-                if(test)
+                if (test)
                     System.out.println("No other clients found\n");
                 return false;
             } else if (action.equals("BROADCAST")) {
@@ -202,15 +202,14 @@ public class Server {
                         ct.getBroadcast(msg + "\n");
                     if (test)
                         System.out.println("Broadcast message sent to all active clients\n");
-                }
-                else if (test)
+                } else if (test)
                     System.out.println("Broadcast test failed\n");
             } else if (action.equals("START")) {
                 String usr = new String();
                 usr = this.sin.readUTF();
                 boolean found = false;
                 for (ClientThread ct : clients) {
-                    if (ct.user.find(usr)){
+                    if (ct.user.find(usr)) {
                         found = true;
                         ct.sout.writeUTF("CHAT");
                         ct.sout.flush();
@@ -222,18 +221,17 @@ public class Server {
                             ct.sout.flush();
                             if (test)
                                 System.out.println("New chat initiated with " + usr);
-                        }
-                        else if (!correct && test)
+                        } else if (!correct && test)
                             System.out.println("New chat initiation failed\n");
                     }
                 }
-                if(!found && test)
+                if (!found && test)
                     System.out.println("New chat could not be initiated; other user not found\n");
             } else if (action.equals("LOGOUT")) {
                 this.user.logout();
                 clients.remove(this);
                 this.connected = false;
-                if(test)
+                if (test)
                     System.out.println(this.user.get_name() + " logout successful\n");
                 return false;
             } else if (action.equals("EXIT")) {

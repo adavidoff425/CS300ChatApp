@@ -208,8 +208,6 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
             } else if (source == this.exit2) {
                 if (test)
                     System.out.println("Exiting chat history screen\n");
-                this.sout.writeUTF("EXIT");
-                this.sout.flush();
                 this.layout.show(this.cards, RUNNINGPANEL);
 
             } else if (source == this.sends.get(this.tab)) {
