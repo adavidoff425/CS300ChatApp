@@ -199,7 +199,7 @@ public class Server {
                 msg = this.sin.readUTF();
                 if (!msg.equals("")) {
                     for (ClientThread ct : clients)
-                        ct.getBroadcast(this.user.get_name() + ": " + msg + "\n");
+                        ct.getBroadcast(msg + "\n");
                     if (test)
                         System.out.println("Broadcast message sent to all active clients\n");
                 }
@@ -247,6 +247,8 @@ public class Server {
                     if (this.user.writeHistory() && other.writeHistory()) {
                         this.sout.writeUTF("DONE");
                         this.sout.flush();
+                        if(test)
+                            System.out.println("History not written for one or both users\n");
                     }
                     for (ClientThread ct : clients) {
                         if (ct.user.get_name().equals(with)) {
@@ -274,7 +276,6 @@ public class Server {
             while (connected) {
                 try {
                     action = this.sin.readUTF();
-
                     if (action.equals("REGISTER") || action.equals("LOGIN")) {
                         String username = new String();
                         String password = new String();
@@ -284,6 +285,8 @@ public class Server {
                                 REGISTER = false;
                                 this.sout.writeBoolean(REGISTER);
                                 this.sout.flush();
+                                if(test)
+                                    System.out.println("Username already exits\n");
                                 continue;
                             } else if (action.equals("LOGIN") && u.equals(username)) {
                                 try {
@@ -297,9 +300,13 @@ public class Server {
                                         if (this.user == null) {
                                             this.sout.writeBoolean(false);
                                             this.sout.flush();
+                                            if(test)
+                                                System.out.println("Incorrect Password. Try again\n");
                                             continue;
                                         } else {
                                             this.sout.writeBoolean(true);
+                                            if(test)
+                                                System.out.println("User " + username + " succesfully logged in\n");
                                             connected = listen();
                                         }
                                     }
@@ -316,11 +323,14 @@ public class Server {
                             password = this.sin.readUTF();
                             if (password != null) {
                                 this.user = addUser(username, password);
+                                System.out.println("Registered user " + username + " with password " + password + "\n");
                                 connected = listen();
                             }
                         } else if (action.equals("LOGIN") && !LOGIN) {
                             this.sout.writeBoolean(false);
                             this.sout.flush();
+                            if(test)
+                                System.out.println("Username not found in database. Try again\n");
                             continue;
                         }
                     }
@@ -338,25 +348,23 @@ public class Server {
             this.sout.flush();
             this.sout.writeUTF(msg);
             this.sout.flush();
+            if(test)
+                System.out.println("Broadcast message " + msg + "sent to user " + this.user.get_name() + "\n");
         }
     }
 
 
     public static void main(String[] args) {
-        if(args[0] == 1){
-            try {
+        try {
+            if (args[0].equals("test")) {
                 Server server = new Server(3000, true);
-            }
-            catch(Exception e1) {
-                e.printStackTrace();
-            }
-        }
-        else {
-            try {
+            } else {
                 Server server = new Server(3000, false);
-            } catch (Exception e) {
-                e.printStackTrace();
             }
         }
+        catch(Exception e){
+            e.printStackTrace();
+            }
+
     }
 }

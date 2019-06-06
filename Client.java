@@ -10,14 +10,15 @@ public class Client extends JFrame{
     protected DataInputStream sin;
     protected DataOutputStream sout;
     protected Socket clientSocket;
-    protected boolean connected;
+    protected boolean connected, test;
     protected ClientGUI gui;
     protected String username;
     protected String server_address;
     protected int port;
 
-    public Client(String server, int port){
+    public Client(String server, int port, boolean isTest){
         super("Chat Application");
+        this.test = isTest;
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.server_address = server;
         this.port = port;
@@ -83,6 +84,7 @@ public class Client extends JFrame{
             }
         }
             catch(Exception e){
+                e.printStackTrace();
                 System.out.println("Error logging in\n");
             }
 
