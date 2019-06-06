@@ -206,10 +206,6 @@ public class Server {
                 this.user.logout();
                 clients.remove(this);
                 this.connected = false;
-                for (ClientThread ct : clients) {
-                    ct.sout.writeUTF("REFRESH");
-                    ct.sout.flush();
-                }
                 return false;
             } else if (action.equals("EXIT")) {
                 String with = new String(this.sin.readUTF());
@@ -299,7 +295,6 @@ public class Server {
                     }
 
                 } catch (Exception ae) {
-                    ae.printStackTrace();
                     System.out.println("Client Thread exception caught\n");
                     return;
                 }
