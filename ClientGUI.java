@@ -131,6 +131,8 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
 
             } else if (source == this.displayHistory) {
                 String msg = new String();
+                if(test)
+                    System.out.println("History button pressed\n");
                 this.sout.writeUTF("HISTORY");
                 this.sout.flush();
                 msg = this.sin.readUTF();
@@ -459,7 +461,6 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
                     return true;
                 }
             } else if (register(name, pw)) {
-               // listen();
                 return true;
             }
 
@@ -477,7 +478,6 @@ class ClientGUI extends Client implements ListSelectionListener, ActionListener,
                     return true;
                 }
             } else if (login(name, pw)) {
-               // listen();
                 return true;
             }
 
