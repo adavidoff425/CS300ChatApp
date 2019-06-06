@@ -7,14 +7,15 @@ public class Server {
     private static Set<User> users = new HashSet<>();
     private static ArrayList<ClientThread> clients = new ArrayList<>();
     private ServerSocket socket;
-    private boolean running;
+    private boolean running, test;
     private int port;
     private File userfile;
     private FileWriter writer;
     private FileReader fileReader;
     private BufferedReader reader;
 
-    public Server(int port) throws ClassNotFoundException, IOException {
+    public Server(int port, boolean test) throws ClassNotFoundException, IOException {
+        this.test = test;
         this.port = port;
         this.userfile = new File("users.txt");
         if (!this.userfile.exists()) {
@@ -54,20 +55,23 @@ public class Server {
 
         Socket server = null;
         this.running = true;
-        System.out.println("Waiting on clients to connect\n");
+        if(test)
+            System.out.println("Waiting on clients to connect\n");
         while (running) {
             try {
                 server = this.socket.accept();
             } catch (IOException e) {
                 System.out.println("Error connecting socket\n");
             }
-            System.out.println("New client connected");
+            if(test)
+                System.out.println("New client connected");
             try {
                 DataInputStream in = new DataInputStream(server.getInputStream());
                 DataOutputStream out = new DataOutputStream(server.getOutputStream());
                 boolean check = in.readBoolean();
                 if (!check) {
-                    System.out.println("New listenThread connected\n");
+                    if(test)
+                        System.out.println("New listenThread connected\n");
                     continue;
                 }
                 ClientThread newClient = new ClientThread(server, in, out);
@@ -90,6 +94,8 @@ public class Server {
                     thread.sin.close();
                     thread.sout.close();
                     thread.clientSocket.close();
+                    if(test)
+                        System.out.println("All client threads disconnected\n");
                 } catch (Exception e) {
                     System.out.println("Error disconnecting clients from server");
                 }
@@ -138,7 +144,6 @@ public class Server {
             String action = new String();
 
             action = this.sin.readUTF();
-            System.out.println(action);
             if (action.equals("USERS")) {
                 for (User u : users) {
                     if (u.isLoggedIn()) {
@@ -148,6 +153,8 @@ public class Server {
                 }
                 this.sout.writeUTF("DONE");
                 this.sout.flush();
+                if(test)
+                    System.out.println("Active user list sent to client\n");
                 listen();
             } else if (action.equals("HISTORY")) {
                 ArrayList<String> history = new ArrayList<>();
@@ -158,6 +165,8 @@ public class Server {
                 }
                 this.sout.writeUTF("DONE");
                 this.sout.flush();
+                if(test)
+                    System.out.println("Chat history sent to client\n");
                 listen();
             } else if (action.equals("SENDMSG")) {
                 String usr = new String();
@@ -174,9 +183,13 @@ public class Server {
                         ct.sout.flush();
                         ct.user.add_msg(this.user, msg);
                         this.user.add_msg(this.user, msg);
+                        if(test)
+                            System.out.println("Message written to both users chat history\n");
                         listen();
                     }
                 }
+                if(test)
+                    System.out.println("No other clients found\n");
                 return false;
             } else if (action.equals("BROADCAST")) {
                 String msg = new String();
@@ -184,28 +197,44 @@ public class Server {
                     msg = this.sin.readUTF();
                 this.sin.readUTF();
                 msg = this.sin.readUTF();
-                if (!msg.equals(""))
+                if (!msg.equals("")) {
                     for (ClientThread ct : clients)
                         ct.getBroadcast(this.user.get_name() + ": " + msg + "\n");
+                    if (test)
+                        System.out.println("Broadcast message sent to all active clients\n");
+                }
+                else if (test)
+                    System.out.println("Broadcast test failed\n");
             } else if (action.equals("START")) {
                 String usr = new String();
                 usr = this.sin.readUTF();
+                boolean found = false;
                 for (ClientThread ct : clients) {
-                    if (ct.user.find(usr))
+                    if (ct.user.find(usr)){
+                        found = true;
                         ct.sout.writeUTF("CHAT");
-                    ct.sout.flush();
-                    ct.sout.writeUTF(ct.user.get_name());
-                    ct.sout.flush();
-                    Boolean correct = ct.sin.readBoolean();
-                    if (correct) {
-                        ct.sout.writeUTF(this.user.get_name());
                         ct.sout.flush();
+                        ct.sout.writeUTF(ct.user.get_name());
+                        ct.sout.flush();
+                        Boolean correct = ct.sin.readBoolean();
+                        if (correct) {
+                            ct.sout.writeUTF(this.user.get_name());
+                            ct.sout.flush();
+                            if (test)
+                                System.out.println("New chat initiated with " + usr);
+                        }
+                        else if (!correct && test)
+                            System.out.println("New chat initiation failed\n");
                     }
                 }
+                if(!found && test)
+                    System.out.println("New chat could not be initiated; other user not found\n");
             } else if (action.equals("LOGOUT")) {
                 this.user.logout();
                 clients.remove(this);
                 this.connected = false;
+                if(test)
+                    System.out.println(this.user.get_name() + " logout successful\n");
                 return false;
             } else if (action.equals("EXIT")) {
                 String with = new String(this.sin.readUTF());
@@ -228,6 +257,8 @@ public class Server {
                         }
                     }
                 }
+                else if (test)
+                    System.out.println("Exiting chat failed; other user not found\n");
             }
             return false;
         }
@@ -312,10 +343,20 @@ public class Server {
 
 
     public static void main(String[] args) {
-        try {
-            Server server = new Server(3000);
-        } catch (Exception e) {
-            e.printStackTrace();
+        if(args[0] == 1){
+            try {
+                Server server = new Server(3000, true);
+            }
+            catch(Exception e1) {
+                e.printStackTrace();
+            }
+        }
+        else {
+            try {
+                Server server = new Server(3000, false);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 }
